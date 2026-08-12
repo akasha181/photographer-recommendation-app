@@ -1,0 +1,69 @@
+{
+  "sentiment": {
+    "name": "sentiment",
+    "algorithm": "TfidfVectorizer(1,2) + LogisticRegression(balanced)",
+    "artifact_path": "/Users/mac/Desktop/akasha/ml/artifacts/sentiment.joblib",
+    "training_rows": 7640,
+    "training_duration_seconds": 4.16,
+    "metrics": {
+      "accuracy": 0.7895,
+      "macro_f1": 0.6807,
+      "weighted_f1": 0.7926
+    }
+  },
+  "ranker": {
+    "name": "ranker",
+    "algorithm": "transparent weighted scorer (no learnable signal in data)",
+    "artifact_path": "/Users/mac/Desktop/akasha/ml/artifacts/ranker.joblib",
+    "feature_order": [
+      "bayesian_rating",
+      "reviews_count_log",
+      "years_experience",
+      "success_rate",
+      "response_speed_score",
+      "portfolio_score_norm",
+      "popularity_score",
+      "engagement_rate",
+      "recency_score",
+      "price_percentile",
+      "sentiment_score",
+      "portfolio_image_count"
+    ],
+    "training_rows": 0,
+    "training_duration_seconds": 4.41,
+    "metrics": {
+      "mode": "prior",
+      "reason": "no feature correlates with booking outcome at p<0.05",
+      "features_with_signal": 1,
+      "internal_consistency_spearman": 0.9795,
+      "weights": {
+        "bayesian_rating": 0.3,
+        "success_rate": 0.2,
+        "response_speed_score": 0.15,
+        "popularity_score": 0.12,
+        "portfolio_score_norm": 0.1,
+        "reviews_count_log": 0.06,
+        "engagement_rate": 0.04,
+        "sentiment_score": 0.03
+      }
+    }
+  },
+  "cf": {
+    "name": "cf",
+    "algorithm": "item-item cosine similarity on weighted implicit feedback",
+    "artifact_path": "/Users/mac/Desktop/akasha/ml/artifacts/cf.joblib",
+    "training_rows": 498,
+    "training_duration_seconds": 0.26,
+    "metrics": {
+      "density_percent": 1.097,
+      "hit_rate_at_10": 0.094,
+      "hit_rate_at_20": 0.1477,
+      "mean_rank_of_held_out": 68.6,
+      "random_baseline": 0.0538,
+      "lift": 1.75,
+      "n_buyers": 244,
+      "n_photographers": 186,
+      "evaluation": "leave-one-out, similarity recomputed per trial"
+    }
+  }
+}

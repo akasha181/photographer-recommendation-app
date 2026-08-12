@@ -1,0 +1,62 @@
+# ─── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# ─── Django ──────────────────────────────────────────────────────────────────
+*.log
+db.sqlite3
+backend/staticfiles/
+.env
+.env.*
+!.env.example
+
+# Media is NOT committed: `manage.py seed_data` regenerates every file and the
+# matching database row together. Shipping the files without the rows that
+# point at them (Django appends a random suffix on collision, so the names
+# differ per seed) would only create orphans.
+backend/media/
+backend/private_media/
+backend/test_media/
+
+# Runtime state written by start.sh
+.logs/
+
+# ─── ML artifacts (models are rebuilt by `python ml/train.py`) ───────────────
+ml/artifacts/**/*.joblib
+ml/artifacts/**/*.npz
+ml/data/interim/
+ml/data/processed/
+.ipynb_checkpoints/
+
+# ─── Node / React Native ─────────────────────────────────────────────────────
+node_modules/
+.expo/
+dist/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# ─── macOS ───────────────────────────────────────────────────────────────────
+.DS_Store
+
+# ─── IDE ─────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+
+# Local agent permission caches (machine-specific absolute paths).
+# CLAUDE.md and AGENTS.md are project documentation and ARE tracked.
+**/.claude/settings.json
+**/.claude/settings.local.json

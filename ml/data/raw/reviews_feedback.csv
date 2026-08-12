@@ -1,0 +1,301 @@
+Review_ID,Photographer_ID,Buyer_ID,Review_Text,Sentiment
+1,179,224,"Average experience, could improve.",Negative
+2,147,200,Amazing service and very professional.,Negative
+3,153,102,Amazing service and very professional.,Negative
+4,171,297,Not satisfied with the booking process.,Positive
+5,83,163,Amazing service and very professional.,Positive
+6,118,76,Excellent photography skills!,Neutral
+7,30,209,"Average experience, could improve.",Negative
+8,185,2,Excellent photography skills!,Positive
+9,163,231,Not satisfied with the booking process.,Positive
+10,10,112,Good but response was a bit late.,Neutral
+11,179,280,Good but response was a bit late.,Negative
+12,97,111,"Average experience, could improve.",Positive
+13,49,296,Amazing service and very professional.,Neutral
+14,94,9,"Average experience, could improve.",Neutral
+15,129,64,Excellent photography skills!,Negative
+16,117,212,Excellent photography skills!,Neutral
+17,91,278,Excellent photography skills!,Negative
+18,196,172,Amazing service and very professional.,Positive
+19,118,220,"Average experience, could improve.",Positive
+20,142,84,Not satisfied with the booking process.,Neutral
+21,98,146,Excellent photography skills!,Negative
+22,73,51,Amazing service and very professional.,Positive
+23,23,9,Not satisfied with the booking process.,Neutral
+24,27,255,Not satisfied with the booking process.,Negative
+25,26,228,Not satisfied with the booking process.,Negative
+26,9,149,Excellent photography skills!,Positive
+27,58,233,Not satisfied with the booking process.,Neutral
+28,30,101,Excellent photography skills!,Positive
+29,90,238,Excellent photography skills!,Negative
+30,181,203,Amazing service and very professional.,Neutral
+31,58,260,"Average experience, could improve.",Neutral
+32,169,136,"Average experience, could improve.",Neutral
+33,173,124,Amazing service and very professional.,Neutral
+34,9,8,Amazing service and very professional.,Positive
+35,96,266,Not satisfied with the booking process.,Neutral
+36,86,88,Not satisfied with the booking process.,Neutral
+37,62,285,Excellent photography skills!,Positive
+38,158,202,Amazing service and very professional.,Negative
+39,110,66,Excellent photography skills!,Negative
+40,45,207,"Average experience, could improve.",Negative
+41,41,224,Good but response was a bit late.,Positive
+42,182,65,Not satisfied with the booking process.,Positive
+43,162,296,Excellent photography skills!,Negative
+44,67,284,Good but response was a bit late.,Neutral
+45,53,48,Amazing service and very professional.,Positive
+46,112,6,Not satisfied with the booking process.,Positive
+47,8,279,Amazing service and very professional.,Negative
+48,98,13,Good but response was a bit late.,Neutral
+49,163,184,Good but response was a bit late.,Positive
+50,168,114,"Average experience, could improve.",Positive
+51,138,126,Excellent photography skills!,Neutral
+52,169,27,"Average experience, could improve.",Positive
+53,37,12,Not satisfied with the booking process.,Positive
+54,29,236,Not satisfied with the booking process.,Positive
+55,28,73,"Average experience, could improve.",Neutral
+56,47,48,Amazing service and very professional.,Neutral
+57,93,107,Excellent photography skills!,Positive
+58,126,12,Excellent photography skills!,Positive
+59,125,40,Good but response was a bit late.,Negative
+60,108,193,"Average experience, could improve.",Negative
+61,116,83,Good but response was a bit late.,Neutral
+62,3,92,Not satisfied with the booking process.,Negative
+63,156,17,Amazing service and very professional.,Neutral
+64,89,248,Not satisfied with the booking process.,Negative
+65,140,3,Good but response was a bit late.,Negative
+66,190,131,Amazing service and very professional.,Positive
+67,156,16,Not satisfied with the booking process.,Positive
+68,133,263,Good but response was a bit late.,Positive
+69,94,59,Good but response was a bit late.,Positive
+70,84,71,Good but response was a bit late.,Positive
+71,187,65,"Average experience, could improve.",Neutral
+72,124,103,Amazing service and very professional.,Neutral
+73,182,283,"Average experience, could improve.",Neutral
+74,191,254,Excellent photography skills!,Negative
+75,103,99,"Average experience, could improve.",Positive
+76,51,144,Excellent photography skills!,Positive
+77,150,160,Good but response was a bit late.,Positive
+78,185,250,Excellent photography skills!,Neutral
+79,109,140,"Average experience, could improve.",Negative
+80,28,197,Excellent photography skills!,Positive
+81,146,181,"Average experience, could improve.",Negative
+82,17,231,Good but response was a bit late.,Positive
+83,131,130,Not satisfied with the booking process.,Neutral
+84,76,272,"Average experience, could improve.",Neutral
+85,8,59,Good but response was a bit late.,Neutral
+86,110,96,"Average experience, could improve.",Positive
+87,19,111,"Average experience, could improve.",Neutral
+88,38,161,Amazing service and very professional.,Positive
+89,82,6,"Average experience, could improve.",Positive
+90,120,291,"Average experience, could improve.",Positive
+91,144,34,Excellent photography skills!,Neutral
+92,155,109,Not satisfied with the booking process.,Positive
+93,27,288,"Average experience, could improve.",Negative
+94,156,39,Not satisfied with the booking process.,Negative
+95,108,223,"Average experience, could improve.",Neutral
+96,51,101,Amazing service and very professional.,Neutral
+97,128,24,"Average experience, could improve.",Neutral
+98,31,64,Excellent photography skills!,Positive
+99,154,168,Not satisfied with the booking process.,Neutral
+100,61,296,Amazing service and very professional.,Neutral
+101,5,295,Amazing service and very professional.,Neutral
+102,73,68,Excellent photography skills!,Positive
+103,137,271,Amazing service and very professional.,Neutral
+104,166,9,Amazing service and very professional.,Neutral
+105,25,213,"Average experience, could improve.",Neutral
+106,82,178,Excellent photography skills!,Positive
+107,143,161,Excellent photography skills!,Negative
+108,13,202,"Average experience, could improve.",Negative
+109,117,253,Amazing service and very professional.,Neutral
+110,159,53,Amazing service and very professional.,Positive
+111,13,6,Good but response was a bit late.,Positive
+112,83,224,Good but response was a bit late.,Positive
+113,23,98,"Average experience, could improve.",Negative
+114,2,27,"Average experience, could improve.",Positive
+115,29,25,"Average experience, could improve.",Positive
+116,68,169,Not satisfied with the booking process.,Neutral
+117,70,88,Good but response was a bit late.,Negative
+118,118,62,Good but response was a bit late.,Neutral
+119,38,300,Excellent photography skills!,Negative
+120,115,63,Not satisfied with the booking process.,Negative
+121,62,296,Excellent photography skills!,Negative
+122,126,144,"Average experience, could improve.",Negative
+123,124,116,Amazing service and very professional.,Neutral
+124,197,152,Amazing service and very professional.,Neutral
+125,143,125,Good but response was a bit late.,Negative
+126,20,39,Excellent photography skills!,Positive
+127,55,7,Good but response was a bit late.,Neutral
+128,99,97,Excellent photography skills!,Positive
+129,88,107,Not satisfied with the booking process.,Negative
+130,132,161,"Average experience, could improve.",Negative
+131,117,79,Not satisfied with the booking process.,Positive
+132,34,113,"Average experience, could improve.",Neutral
+133,116,263,Good but response was a bit late.,Neutral
+134,49,36,"Average experience, could improve.",Neutral
+135,43,158,Not satisfied with the booking process.,Negative
+136,27,76,Excellent photography skills!,Positive
+137,191,57,Good but response was a bit late.,Positive
+138,118,96,"Average experience, could improve.",Positive
+139,122,272,Excellent photography skills!,Neutral
+140,68,61,Not satisfied with the booking process.,Positive
+141,91,221,Good but response was a bit late.,Positive
+142,102,258,Excellent photography skills!,Negative
+143,86,28,Excellent photography skills!,Neutral
+144,95,51,Amazing service and very professional.,Negative
+145,98,217,Good but response was a bit late.,Neutral
+146,49,207,Good but response was a bit late.,Negative
+147,71,272,Not satisfied with the booking process.,Neutral
+148,133,222,Amazing service and very professional.,Negative
+149,13,128,Amazing service and very professional.,Positive
+150,30,28,Amazing service and very professional.,Negative
+151,69,123,Amazing service and very professional.,Negative
+152,26,142,Good but response was a bit late.,Negative
+153,180,208,Excellent photography skills!,Neutral
+154,26,113,"Average experience, could improve.",Neutral
+155,53,88,Good but response was a bit late.,Neutral
+156,164,148,Not satisfied with the booking process.,Neutral
+157,188,2,Amazing service and very professional.,Positive
+158,129,245,"Average experience, could improve.",Negative
+159,62,88,"Average experience, could improve.",Negative
+160,18,86,Good but response was a bit late.,Neutral
+161,117,73,Amazing service and very professional.,Negative
+162,122,220,"Average experience, could improve.",Positive
+163,46,136,Amazing service and very professional.,Positive
+164,174,5,Not satisfied with the booking process.,Neutral
+165,122,299,Amazing service and very professional.,Neutral
+166,64,242,Amazing service and very professional.,Positive
+167,5,291,"Average experience, could improve.",Positive
+168,135,258,Good but response was a bit late.,Positive
+169,199,49,Amazing service and very professional.,Neutral
+170,189,172,Excellent photography skills!,Neutral
+171,189,180,Not satisfied with the booking process.,Neutral
+172,170,250,"Average experience, could improve.",Neutral
+173,118,7,"Average experience, could improve.",Neutral
+174,182,171,Not satisfied with the booking process.,Negative
+175,153,248,Amazing service and very professional.,Neutral
+176,176,266,Amazing service and very professional.,Positive
+177,106,113,Good but response was a bit late.,Neutral
+178,128,16,Good but response was a bit late.,Negative
+179,190,221,"Average experience, could improve.",Positive
+180,191,46,Good but response was a bit late.,Neutral
+181,164,56,"Average experience, could improve.",Negative
+182,174,279,Excellent photography skills!,Negative
+183,45,136,"Average experience, could improve.",Neutral
+184,101,214,"Average experience, could improve.",Neutral
+185,49,22,Not satisfied with the booking process.,Negative
+186,180,176,Not satisfied with the booking process.,Positive
+187,111,233,Not satisfied with the booking process.,Neutral
+188,74,57,Amazing service and very professional.,Neutral
+189,176,76,Excellent photography skills!,Negative
+190,39,268,"Average experience, could improve.",Negative
+191,143,84,"Average experience, could improve.",Neutral
+192,74,34,"Average experience, could improve.",Positive
+193,117,21,Good but response was a bit late.,Neutral
+194,152,64,Amazing service and very professional.,Neutral
+195,79,3,Excellent photography skills!,Neutral
+196,170,1,Amazing service and very professional.,Neutral
+197,36,180,"Average experience, could improve.",Negative
+198,171,288,Good but response was a bit late.,Positive
+199,183,139,Good but response was a bit late.,Negative
+200,51,222,Not satisfied with the booking process.,Positive
+201,75,113,Amazing service and very professional.,Neutral
+202,91,128,Excellent photography skills!,Neutral
+203,103,51,"Average experience, could improve.",Neutral
+204,153,160,Good but response was a bit late.,Negative
+205,112,166,Not satisfied with the booking process.,Positive
+206,175,103,"Average experience, could improve.",Positive
+207,107,284,Good but response was a bit late.,Neutral
+208,79,44,"Average experience, could improve.",Negative
+209,161,237,Not satisfied with the booking process.,Positive
+210,97,224,Amazing service and very professional.,Positive
+211,135,227,"Average experience, could improve.",Negative
+212,176,184,Excellent photography skills!,Neutral
+213,110,239,Excellent photography skills!,Neutral
+214,119,15,Not satisfied with the booking process.,Positive
+215,197,216,Amazing service and very professional.,Positive
+216,158,155,Good but response was a bit late.,Negative
+217,132,192,Good but response was a bit late.,Negative
+218,140,290,"Average experience, could improve.",Positive
+219,194,202,Good but response was a bit late.,Neutral
+220,172,4,Excellent photography skills!,Negative
+221,118,28,Amazing service and very professional.,Positive
+222,70,55,"Average experience, could improve.",Negative
+223,25,149,Not satisfied with the booking process.,Neutral
+224,177,170,Amazing service and very professional.,Positive
+225,190,300,Not satisfied with the booking process.,Negative
+226,184,28,Good but response was a bit late.,Negative
+227,37,288,Excellent photography skills!,Positive
+228,58,80,"Average experience, could improve.",Negative
+229,80,4,Excellent photography skills!,Negative
+230,177,103,Amazing service and very professional.,Positive
+231,1,79,Not satisfied with the booking process.,Positive
+232,134,50,Good but response was a bit late.,Positive
+233,27,243,Amazing service and very professional.,Negative
+234,114,201,Amazing service and very professional.,Positive
+235,77,208,Excellent photography skills!,Positive
+236,61,280,"Average experience, could improve.",Negative
+237,175,225,Not satisfied with the booking process.,Positive
+238,111,75,Amazing service and very professional.,Positive
+239,37,124,Good but response was a bit late.,Negative
+240,190,280,Good but response was a bit late.,Neutral
+241,123,149,"Average experience, could improve.",Negative
+242,26,253,"Average experience, could improve.",Negative
+243,71,201,Excellent photography skills!,Negative
+244,28,238,Excellent photography skills!,Neutral
+245,38,15,"Average experience, could improve.",Neutral
+246,31,289,Excellent photography skills!,Positive
+247,149,156,Amazing service and very professional.,Negative
+248,167,228,Amazing service and very professional.,Neutral
+249,36,240,Excellent photography skills!,Neutral
+250,3,82,"Average experience, could improve.",Negative
+251,129,108,"Average experience, could improve.",Negative
+252,135,200,Not satisfied with the booking process.,Positive
+253,45,78,"Average experience, could improve.",Negative
+254,185,289,"Average experience, could improve.",Neutral
+255,184,72,"Average experience, could improve.",Negative
+256,78,202,Amazing service and very professional.,Negative
+257,124,193,Excellent photography skills!,Negative
+258,169,93,Not satisfied with the booking process.,Negative
+259,130,270,"Average experience, could improve.",Positive
+260,179,166,Not satisfied with the booking process.,Negative
+261,90,300,Not satisfied with the booking process.,Neutral
+262,18,24,Amazing service and very professional.,Negative
+263,41,119,Amazing service and very professional.,Negative
+264,28,256,Excellent photography skills!,Neutral
+265,195,119,Good but response was a bit late.,Positive
+266,45,197,Excellent photography skills!,Positive
+267,16,129,Amazing service and very professional.,Positive
+268,192,38,Excellent photography skills!,Neutral
+269,156,16,Good but response was a bit late.,Neutral
+270,28,231,Excellent photography skills!,Positive
+271,164,294,Not satisfied with the booking process.,Positive
+272,51,130,Excellent photography skills!,Neutral
+273,174,147,Good but response was a bit late.,Positive
+274,190,83,Excellent photography skills!,Negative
+275,50,45,Not satisfied with the booking process.,Positive
+276,162,50,Good but response was a bit late.,Positive
+277,36,3,"Average experience, could improve.",Neutral
+278,146,280,Amazing service and very professional.,Neutral
+279,48,271,Excellent photography skills!,Positive
+280,54,293,Excellent photography skills!,Negative
+281,91,183,Not satisfied with the booking process.,Negative
+282,36,35,Excellent photography skills!,Neutral
+283,161,193,Amazing service and very professional.,Negative
+284,21,66,Not satisfied with the booking process.,Neutral
+285,26,61,Excellent photography skills!,Positive
+286,14,277,"Average experience, could improve.",Positive
+287,58,149,"Average experience, could improve.",Neutral
+288,181,184,Amazing service and very professional.,Positive
+289,74,39,Not satisfied with the booking process.,Negative
+290,62,266,Not satisfied with the booking process.,Negative
+291,80,205,Not satisfied with the booking process.,Positive
+292,140,57,Not satisfied with the booking process.,Neutral
+293,68,16,Amazing service and very professional.,Neutral
+294,108,134,Good but response was a bit late.,Neutral
+295,196,31,Good but response was a bit late.,Positive
+296,141,169,Amazing service and very professional.,Positive
+297,127,38,Not satisfied with the booking process.,Negative
+298,180,19,"Average experience, could improve.",Positive
+299,107,42,Not satisfied with the booking process.,Neutral
+300,34,139,Amazing service and very professional.,Positive
