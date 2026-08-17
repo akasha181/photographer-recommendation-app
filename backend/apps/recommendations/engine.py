@@ -425,6 +425,7 @@ def recommend(
 
     scored.sort(key=lambda p: -p.score)
     top = _apply_exploration_quota(scored, limit)
+    top = _order_for_display(top, personalised=has_collab)
 
     result = {
         "photographers": top,
@@ -435,6 +436,50 @@ def recommend(
     }
     _cache_set(cache_key, result)
     return result
+
+
+def _order_for_display(rows: list, *, personalised: bool) -> list:
+    """
+    The engine decides WHO is on the page; the page's own label decides the ORDER.
+
+    WHY THIS EXISTS
+    ---------------
+    The Home screen titles this feed "Picked for you" when it is personalised and
+    "Top rated" when it is not. Score order is right for the first and wrong for
+    the second: rating is one of twelve features in the blend, so a "Top rated"
+    list came out 4.75, 4.67, 4.78, 3.79, 4.50 — every number correct, the
+    sequence apparently random, and the heading promising an order the list did
+    not have. A label that lies about its own ordering costs more trust than the
+    ranking gains.
+
+    So an unpersonalised page is re-sorted by the rating it DISPLAYS. It is
+    deliberately `avg_rating` and not `bayesian_rating`: the card shows the
+    average, and sorting by a number the user cannot see reproduces exactly the
+    complaint this fixes — Featured is ordered by the Bayesian score and its
+    visible averages can still invert (4.76 above 4.78).
+
+    Sorting by the raw average alone would let a 5.0-from-one-review outrank a
+    4.8-from-two-hundred. It cannot here, because this only re-orders a page the
+    scorer already selected — and the scorer weighs `bayesian_rating` and review
+    volume when choosing it. Selection stays evidence-weighted; presentation
+    matches its heading.
+
+    A personalised page is returned untouched: its order IS the recommendation,
+    every card carries a `reason`, and the header says PERSONALISED.
+    """
+    if personalised:
+        return rows
+
+    rows.sort(
+        key=lambda p: (
+            -float(p.avg_rating or 0),
+            # Same average, better evidence first — 4.8 from 200 reviews above
+            # 4.8 from 3.
+            -(p.reviews_count or 0),
+            -float(p.score or 0),
+        )
+    )
+    return rows
 
 
 def _apply_exploration_quota(scored: list, limit: int) -> list:
@@ -495,6 +540,9 @@ def _relaxed_fallback(category, city, max_price, limit) -> dict:
         if params["max_price"]:
             qs = qs.filter(base_price__lte=params["max_price"])
 
+        # Selected on the Bayesian score (a 5.0 from one review must not win a
+        # fallback either), then ordered for display like any unpersonalised
+        # page — see _order_for_display.
         rows = list(qs.distinct().order_by("-bayesian_rating")[:limit])
         if rows:
             for p in rows:
@@ -504,6 +552,7 @@ def _relaxed_fallback(category, city, max_price, limit) -> dict:
                 p.business_score = _business_score(p)
                 p.strategy = "POPULARITY"
                 p.reason = _reason(p, p.score, 0.0, "POPULARITY")
+            rows = _order_for_display(rows, personalised=False)
             return {
                 "photographers": rows,
                 "strategy": "POPULARITY",

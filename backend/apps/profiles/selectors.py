@@ -153,9 +153,18 @@ def photographer_self(user) -> PhotographerProfile | None:
 
 
 def featured_photographers(limit: int = 10) -> QuerySet[PhotographerProfile]:
-    """Editorially featured, best-rated first."""
+    """
+    Editorially featured, best-rated first.
+
+    Ordered by `avg_rating` — the number the card actually prints — with review
+    volume as the tiebreaker. It was `-bayesian_rating`, which is *better*
+    ranking but sorts on a value the user cannot see: 4.76 (bayes 4.74) then
+    4.75 (bayes 4.75) reads as a list that is not sorted at all. `is_featured`
+    is already an editorial gate, so a thin-evidence 5.0 cannot arrive here on
+    its average alone.
+    """
     return photographers_for_list().filter(is_featured=True).order_by(
-        "-bayesian_rating", "-completed_bookings"
+        "-avg_rating", "-reviews_count", "-completed_bookings"
     )[:limit]
 
 
