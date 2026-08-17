@@ -3,10 +3,20 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
-import { PlaceholderScreen } from '../components/layout/PlaceholderScreen';
 import { BookingDetailScreen } from '../features/bookings/screens/BookingDetailScreen';
 import { BookingsScreen } from '../features/bookings/screens/BookingsScreen';
 import { RequestsScreen } from '../features/bookings/screens/RequestsScreen';
+import { ChatScreen } from '../features/chat/screens/ChatScreen';
+import { ConversationsScreen } from '../features/chat/screens/ConversationsScreen';
+import { NewChatScreen } from '../features/chat/screens/NewChatScreen';
+import { NotificationSettingsScreen } from '../features/notifications/screens/NotificationSettingsScreen';
+import { NotificationsScreen } from '../features/notifications/screens/NotificationsScreen';
+import { ReceivedReviewsScreen } from '../features/reviews/screens/ReceivedReviewsScreen';
+import { DashboardScreen } from '../features/photographer/screens/DashboardScreen';
+import { EditProfileScreen } from '../features/photographer/screens/EditProfileScreen';
+import { MyCalendarScreen } from '../features/photographer/screens/MyCalendarScreen';
+import { MyPortfolioScreen } from '../features/photographer/screens/MyPortfolioScreen';
+import { MyServicesScreen } from '../features/photographer/screens/MyServicesScreen';
 import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
 import { WalletScreen } from '../features/profile/screens/WalletScreen';
 import { WishlistScreen } from '../features/profile/screens/WishlistScreen';
@@ -40,6 +50,22 @@ export type PhotographerStackParams = {
   Purchases: undefined;
   Wallet: undefined;
   Wishlist: undefined;
+  MyServices: undefined;
+  MyCalendar: undefined;
+  EditProfile: undefined;
+  /** Module 9 — the reviews this photographer received, and their replies. */
+  ReceivedReviews: undefined;
+  // ─── Modules 12 & 13 ────────────────────────────────────────────────────
+  Notifications: undefined;
+  NotificationSettings: undefined;
+  Conversations: undefined;
+  NewChat: undefined;
+  Chat: {
+    conversationId: number;
+    withUserId?: number;
+    bookingId?: number;
+    title?: string;
+  };
 };
 
 const Tab = createBottomTabNavigator<PhotographerTabParams>();
@@ -78,11 +104,14 @@ function PhotographerTabs({ navigation }: any) {
       })}
     >
       <Tab.Screen name="Dashboard">
-        {() => (
-          <PlaceholderScreen
-            title="Dashboard"
-            module="Module 15 — Analytics"
-            detail="Bookings, revenue, monthly growth, ratings and top services."
+        {({ navigation: tabNav }) => (
+          <DashboardScreen
+            onOpenRequests={() => tabNav.navigate('Requests')}
+            onOpenJobs={() => tabNav.navigate('Jobs')}
+            onOpenServices={() => navigation.navigate('MyServices')}
+            onOpenNotifications={() => navigation.navigate('Notifications')}
+            onOpenMessages={() => navigation.navigate('Conversations')}
+            onOpenReviews={() => navigation.navigate('ReceivedReviews')}
           />
         )}
       </Tab.Screen>
@@ -98,13 +127,7 @@ function PhotographerTabs({ navigation }: any) {
       </Tab.Screen>
 
       <Tab.Screen name="Portfolio">
-        {() => (
-          <PlaceholderScreen
-            title="Portfolio"
-            module="Module 6 — Portfolio Module"
-            detail="Albums, images, videos and featured works."
-          />
-        )}
+        {() => <MyPortfolioScreen />}
       </Tab.Screen>
 
       <Tab.Screen name="Profile">
@@ -115,6 +138,15 @@ function PhotographerTabs({ navigation }: any) {
             onOpenPurchases={() => navigation.navigate('Purchases')}
             onOpenBookings={() => tabNav.navigate('Jobs')}
             onOpenSellerProducts={() => navigation.navigate('SellerProducts')}
+            onOpenServices={() => navigation.navigate('MyServices')}
+            onOpenCalendar={() => navigation.navigate('MyCalendar')}
+            onEditProfile={() => navigation.navigate('EditProfile')}
+            onOpenReviews={() => navigation.navigate('ReceivedReviews')}
+            onOpenMessages={() => navigation.navigate('Conversations')}
+            onOpenNotifications={() => navigation.navigate('Notifications')}
+            onOpenNotificationSettings={() =>
+              navigation.navigate('NotificationSettings')
+            }
           />
         )}
       </Tab.Screen>
@@ -140,6 +172,17 @@ export function PhotographerNavigator() {
             perspective="photographer"
             onBack={() =>
               navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Tabs')
+            }
+            // No `onWriteReview` here: only the buyer may review a shoot (see
+            // docs/01 §11.3), so the server never offers the action to this side
+            // and the button is filtered out rather than shown and refused.
+            onOpenChat={(booking) =>
+              navigation.navigate('Chat', {
+                conversationId: 0,
+                withUserId: booking.buyer.user_id,
+                bookingId: booking.id,
+                title: booking.buyer.name,
+              })
             }
           />
         )}
@@ -176,6 +219,19 @@ export function PhotographerNavigator() {
         {({ navigation }) => <WalletScreen onBack={() => navigation.goBack()} />}
       </Stack.Screen>
 
+      {/* ─── Module 5 — the photographer's own studio ─────────────────── */}
+      <Stack.Screen name="MyServices">
+        {({ navigation }) => <MyServicesScreen onBack={() => navigation.goBack()} />}
+      </Stack.Screen>
+
+      <Stack.Screen name="MyCalendar">
+        {({ navigation }) => <MyCalendarScreen onBack={() => navigation.goBack()} />}
+      </Stack.Screen>
+
+      <Stack.Screen name="EditProfile">
+        {({ navigation }) => <EditProfileScreen onBack={() => navigation.goBack()} />}
+      </Stack.Screen>
+
       <Stack.Screen name="Wishlist">
         {({ navigation }) => (
           <WishlistScreen
@@ -184,6 +240,81 @@ export function PhotographerNavigator() {
             // so a saved photographer is a dead tap here. Products are not.
             onOpenPhotographer={() => undefined}
             onOpenProduct={(slug) => navigation.navigate('ProductDetail', { slug })}
+          />
+        )}
+      </Stack.Screen>
+
+      {/* ─── Module 9 — reviews received ─────────────────────────────────── */}
+      <Stack.Screen name="ReceivedReviews">
+        {({ navigation }) => (
+          <ReceivedReviewsScreen onBack={() => navigation.goBack()} />
+        )}
+      </Stack.Screen>
+
+      {/* ─── Modules 12 & 13 — notifications and chat ────────────────────── */}
+      <Stack.Screen name="Notifications">
+        {({ navigation }) => (
+          <NotificationsScreen
+            onBack={() => navigation.goBack()}
+            onOpenBooking={(bookingId) =>
+              navigation.navigate('BookingDetail', { bookingId })
+            }
+            onOpenChat={(conversationId) =>
+              navigation.navigate('Chat', { conversationId })
+            }
+            onOpenReviews={() => navigation.navigate('ReceivedReviews')}
+            onOpenProduct={(slug) => navigation.navigate('ProductDetail', { slug })}
+            onOpenPreferences={() => navigation.navigate('NotificationSettings')}
+          />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="NotificationSettings">
+        {({ navigation }) => (
+          <NotificationSettingsScreen onBack={() => navigation.goBack()} />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="Conversations">
+        {({ navigation }) => (
+          <ConversationsScreen
+            onBack={() => navigation.goBack()}
+            onOpenThread={(conversationId, title) =>
+              navigation.navigate('Chat', { conversationId, title })
+            }
+            onNewMessage={() => navigation.navigate('NewChat')}
+          />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="NewChat">
+        {({ navigation }) => (
+          <NewChatScreen
+            onBack={() => navigation.goBack()}
+            onOpenThread={(conversationId, title) =>
+              navigation.replace('Chat', { conversationId, title })
+            }
+          />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="Chat">
+        {({ route, navigation }) => (
+          <ChatScreen
+            conversationId={route.params.conversationId}
+            startWith={
+              route.params.withUserId
+                ? {
+                    userId: route.params.withUserId,
+                    bookingId: route.params.bookingId,
+                  }
+                : undefined
+            }
+            title={route.params.title}
+            onBack={() => navigation.goBack()}
+            onOpenBooking={(bookingId) =>
+              navigation.navigate('BookingDetail', { bookingId })
+            }
           />
         )}
       </Stack.Screen>

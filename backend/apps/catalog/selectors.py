@@ -17,6 +17,27 @@ def get_specializations(category_slug: str | None = None) -> QuerySet[Specializa
     return qs.order_by("name")
 
 
+def get_own_services(photographer) -> QuerySet[Service]:
+    """
+    A photographer's own catalogue, **including archived listings**.
+
+    Deliberately not built on `get_photographer_services` — that one hides
+    inactive rows because it feeds public discovery. The owner needs to see
+    what they archived in order to restore it.
+    """
+    return (
+        Service.objects.filter(photographer=photographer, is_deleted=False)
+        .select_related("category")
+        .prefetch_related("packages")
+        .order_by("-is_active", "display_order", "price")
+    )
+
+
+def get_own_service(photographer, service_id: int) -> Service | None:
+    """Scoped to the owner — someone else's listing is a 404, not a 403."""
+    return get_own_services(photographer).filter(pk=service_id).first()
+
+
 def get_photographer_services(photographer_id: int) -> QuerySet[Service]:
     """
     Active services for one photographer.

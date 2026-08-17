@@ -6,8 +6,16 @@ import React from 'react';
 import { BookingDetailScreen } from '../features/bookings/screens/BookingDetailScreen';
 import { BookingsScreen } from '../features/bookings/screens/BookingsScreen';
 import { CreateBookingScreen } from '../features/bookings/screens/CreateBookingScreen';
+import { ChatScreen } from '../features/chat/screens/ChatScreen';
+import { ConversationsScreen } from '../features/chat/screens/ConversationsScreen';
+import { NewChatScreen } from '../features/chat/screens/NewChatScreen';
 import { ExploreScreen } from '../features/explore/screens/ExploreScreen';
 import { HomeScreen } from '../features/explore/screens/HomeScreen';
+import { NotificationSettingsScreen } from '../features/notifications/screens/NotificationSettingsScreen';
+import { NotificationsScreen } from '../features/notifications/screens/NotificationsScreen';
+import { MyReviewsScreen } from '../features/reviews/screens/MyReviewsScreen';
+import { PhotographerReviewsScreen } from '../features/reviews/screens/PhotographerReviewsScreen';
+import { WriteReviewScreen } from '../features/reviews/screens/WriteReviewScreen';
 import { PhotographerDetailScreen } from '../features/photographer/screens/PhotographerDetailScreen';
 import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
 import { WalletScreen } from '../features/profile/screens/WalletScreen';
@@ -46,6 +54,45 @@ export type BuyerStackParams = {
   Purchases: undefined;
   Wallet: undefined;
   Wishlist: undefined;
+  // ─── Module 9 ───────────────────────────────────────────────────────────
+  MyReviews: undefined;
+  PhotographerReviews: { photographerId: number; name?: string };
+  /**
+   * One screen for both kinds of review.
+   *
+   * The params carry the target plus the words to show above the form, so the
+   * screen never has to fetch the booking or the order item again — the caller
+   * already had it on screen.
+   */
+  WriteReview:
+    | {
+        kind: 'booking';
+        bookingId: number;
+        subject: string;
+        detail?: string;
+      }
+    | {
+        kind: 'product';
+        orderItemId: number;
+        subject: string;
+        detail?: string;
+      };
+  // ─── Modules 12 & 13 ────────────────────────────────────────────────────
+  Notifications: undefined;
+  NotificationSettings: undefined;
+  Conversations: undefined;
+  NewChat: undefined;
+  /**
+   * `conversationId: 0` plus `withUserId` means "open or find the thread with
+   * this person" — the case the booking screen has, where a thread may not
+   * exist yet.
+   */
+  Chat: {
+    conversationId: number;
+    withUserId?: number;
+    bookingId?: number;
+    title?: string;
+  };
 };
 
 const Tab = createBottomTabNavigator<BuyerTabParams>();
@@ -92,6 +139,8 @@ function BuyerTabs({ navigation }: any) {
             onOpenPhotographer={openPhotographer}
             onOpenCategory={(category) => tabNav.navigate('Explore', { category })}
             onOpenSearch={() => tabNav.navigate('Explore')}
+            onOpenNotifications={() => navigation.navigate('Notifications')}
+            onOpenMessages={() => navigation.navigate('Conversations')}
           />
         )}
       </Tab.Screen>
@@ -131,6 +180,12 @@ function BuyerTabs({ navigation }: any) {
             onOpenWishlist={() => navigation.navigate('Wishlist')}
             onOpenPurchases={() => navigation.navigate('Purchases')}
             onOpenBookings={() => tabNav.navigate('Bookings')}
+            onOpenReviews={() => navigation.navigate('MyReviews')}
+            onOpenMessages={() => navigation.navigate('Conversations')}
+            onOpenNotifications={() => navigation.navigate('Notifications')}
+            onOpenNotificationSettings={() =>
+              navigation.navigate('NotificationSettings')
+            }
           />
         )}
       </Tab.Screen>
@@ -161,6 +216,29 @@ export function BuyerNavigator() {
                 serviceId,
               })
             }
+            onOpenReviews={(name) =>
+              navigation.navigate('PhotographerReviews', {
+                photographerId: route.params.photographerId,
+                name,
+              })
+            }
+            onMessage={(userId, name) =>
+              navigation.navigate('Chat', {
+                conversationId: 0,
+                withUserId: userId,
+                title: name,
+              })
+            }
+          />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="PhotographerReviews">
+        {({ route, navigation }) => (
+          <PhotographerReviewsScreen
+            photographerId={route.params.photographerId}
+            name={route.params.name}
+            onBack={() => navigation.goBack()}
           />
         )}
       </Stack.Screen>
@@ -187,6 +265,24 @@ export function BuyerNavigator() {
             perspective="buyer"
             onBack={() =>
               navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Tabs')
+            }
+            onWriteReview={(booking) =>
+              navigation.navigate('WriteReview', {
+                kind: 'booking',
+                bookingId: booking.id,
+                subject: booking.photographer.name,
+                detail: `${booking.service_title} · ${booking.event_date}`,
+              })
+            }
+            // conversationId 0 means "resolve it": ChatScreen opens or finds the
+            // thread with this photographer, attaching the booking to it.
+            onOpenChat={(booking) =>
+              navigation.navigate('Chat', {
+                conversationId: 0,
+                withUserId: booking.photographer.user_id,
+                bookingId: booking.id,
+                title: booking.photographer.name,
+              })
             }
           />
         )}
@@ -219,7 +315,19 @@ export function BuyerNavigator() {
       </Stack.Screen>
 
       <Stack.Screen name="Purchases">
-        {({ navigation }) => <PurchasesScreen onBack={() => navigation.goBack()} />}
+        {({ navigation }) => (
+          <PurchasesScreen
+            onBack={() => navigation.goBack()}
+            onWriteReview={(item) =>
+              navigation.navigate('WriteReview', {
+                kind: 'product',
+                orderItemId: item.id,
+                subject: item.product_title,
+                detail: `Sold by ${item.seller_name}`,
+              })
+            }
+          />
+        )}
       </Stack.Screen>
 
       {/* ─── Profile flow ────────────────────────────────────────────────── */}
@@ -235,6 +343,113 @@ export function BuyerNavigator() {
               navigation.navigate('PhotographerDetail', { photographerId })
             }
             onOpenProduct={(slug) => navigation.navigate('ProductDetail', { slug })}
+          />
+        )}
+      </Stack.Screen>
+
+      {/* ─── Module 9 — reviews ──────────────────────────────────────────── */}
+      <Stack.Screen name="MyReviews">
+        {({ navigation }) => (
+          <MyReviewsScreen
+            onBack={() => navigation.goBack()}
+            onWriteBookingReview={(target) =>
+              navigation.navigate('WriteReview', {
+                kind: 'booking',
+                bookingId: target.booking_id,
+                subject: target.photographer_name,
+                detail: `${target.service_name} · ${target.event_date}`,
+              })
+            }
+            onWriteProductReview={(target) =>
+              navigation.navigate('WriteReview', {
+                kind: 'product',
+                orderItemId: target.order_item_id,
+                subject: target.product_title,
+              })
+            }
+          />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="WriteReview">
+        {({ route, navigation }) => (
+          <WriteReviewScreen
+            target={route.params}
+            onBack={() => navigation.goBack()}
+            // `goBack`, not `replace`: the buyer came from a booking or from the
+            // reviews list, and both are now correct — the mutation invalidated
+            // them. Pushing a new screen would strand them one level deeper.
+            onDone={() => navigation.goBack()}
+          />
+        )}
+      </Stack.Screen>
+
+      {/* ─── Modules 12 & 13 — notifications and chat ────────────────────── */}
+      <Stack.Screen name="Notifications">
+        {({ navigation }) => (
+          <NotificationsScreen
+            onBack={() => navigation.goBack()}
+            onOpenBooking={(bookingId) =>
+              navigation.navigate('BookingDetail', { bookingId })
+            }
+            onOpenChat={(conversationId) =>
+              navigation.navigate('Chat', { conversationId })
+            }
+            onOpenReviews={() => navigation.navigate('MyReviews')}
+            onOpenProduct={(slug) => navigation.navigate('ProductDetail', { slug })}
+            onOpenPreferences={() => navigation.navigate('NotificationSettings')}
+          />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="NotificationSettings">
+        {({ navigation }) => (
+          <NotificationSettingsScreen onBack={() => navigation.goBack()} />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="Conversations">
+        {({ navigation }) => (
+          <ConversationsScreen
+            onBack={() => navigation.goBack()}
+            onOpenThread={(conversationId, title) =>
+              navigation.navigate('Chat', { conversationId, title })
+            }
+            onNewMessage={() => navigation.navigate('NewChat')}
+          />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="NewChat">
+        {({ navigation }) => (
+          <NewChatScreen
+            onBack={() => navigation.goBack()}
+            // `replace`: backing up from a thread into the picker that opened it
+            // would offer to open the same thread again.
+            onOpenThread={(conversationId, title) =>
+              navigation.replace('Chat', { conversationId, title })
+            }
+          />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="Chat">
+        {({ route, navigation }) => (
+          <ChatScreen
+            conversationId={route.params.conversationId}
+            startWith={
+              route.params.withUserId
+                ? {
+                    userId: route.params.withUserId,
+                    bookingId: route.params.bookingId,
+                  }
+                : undefined
+            }
+            title={route.params.title}
+            onBack={() => navigation.goBack()}
+            onOpenBooking={(bookingId) =>
+              navigation.navigate('BookingDetail', { bookingId })
+            }
           />
         )}
       </Stack.Screen>

@@ -46,6 +46,18 @@ export const qk = {
     sellerSummary: ['shop', 'seller', 'summary'] as const,
   },
 
+  /** The photographer's own listings, calendar and portfolio. */
+  studio: {
+    all: ['studio'] as const,
+    services: ['studio', 'services'] as const,
+    calendar: ['studio', 'calendar'] as const,
+    portfolio: ['studio', 'portfolio'] as const,
+    portfolioSummary: ['studio', 'portfolio', 'summary'] as const,
+    albums: ['studio', 'albums'] as const,
+    dashboard: (days: number, months: number) =>
+      ['studio', 'dashboard', days, months] as const,
+  },
+
   profile: {
     all: ['profile'] as const,
     me: ['profile', 'me'] as const,
@@ -60,6 +72,38 @@ export const qk = {
     detail: (id: number | string) => ['bookings', 'detail', String(id)] as const,
     counts: ['bookings', 'counts'] as const,
     upcoming: ['bookings', 'upcoming'] as const,
+  },
+
+  reviews: {
+    all: ['reviews'] as const,
+    forPhotographer: (photographerId: number | string, sort: string, rating?: number) =>
+      ['reviews', 'photographer', String(photographerId), sort, rating ?? 'all'] as const,
+    summary: (photographerId: number | string) =>
+      ['reviews', 'summary', String(photographerId)] as const,
+    forProduct: (productId: number | string) =>
+      ['reviews', 'product', String(productId)] as const,
+    mine: ['reviews', 'mine'] as const,
+    pending: ['reviews', 'pending'] as const,
+    received: (unansweredOnly: boolean) =>
+      ['reviews', 'received', unansweredOnly] as const,
+  },
+
+  notifications: {
+    all: ['notifications'] as const,
+    list: (category?: string, unreadOnly?: boolean) =>
+      ['notifications', 'list', category ?? 'all', Boolean(unreadOnly)] as const,
+    badges: ['notifications', 'badges'] as const,
+    preferences: ['notifications', 'preferences'] as const,
+    devices: ['notifications', 'devices'] as const,
+  },
+
+  chat: {
+    all: ['chat'] as const,
+    conversations: (archived: boolean) => ['chat', 'conversations', archived] as const,
+    conversation: (id: number | string) => ['chat', 'conversation', String(id)] as const,
+    messages: (id: number | string) => ['chat', 'messages', String(id)] as const,
+    unread: ['chat', 'unread'] as const,
+    contacts: (term: string) => ['chat', 'contacts', term] as const,
   },
 
   availability: {

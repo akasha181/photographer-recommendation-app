@@ -69,6 +69,38 @@ export const ENDPOINTS = {
   catalog: {
     categories: '/catalog/categories/',
     services: '/catalog/services/',
+    myServices: '/catalog/my-services/',
+    myService: (id: number) => `/catalog/my-services/${id}/`,
+    archiveService: (id: number) => `/catalog/my-services/${id}/archive/`,
+    restoreService: (id: number) => `/catalog/my-services/${id}/restore/`,
+    packages: (id: number) => `/catalog/my-services/${id}/packages/`,
+    servicePackage: (id: number, packageId: number) =>
+      `/catalog/my-services/${id}/packages/${packageId}/`,
+    removePackage: (id: number, packageId: number) =>
+      `/catalog/my-services/${id}/packages/${packageId}/remove/`,
+  },
+  myAvailability: {
+    calendar: '/availability/me/',
+    schedule: '/availability/me/schedule/',
+    blackouts: '/availability/me/blackouts/',
+    addBlackout: '/availability/me/blackouts/add/',
+    removeBlackout: (id: number) => `/availability/me/blackouts/${id}/`,
+  },
+  analytics: {
+    dashboard: '/analytics/me/',
+    revenue: '/analytics/me/revenue/',
+    funnel: '/analytics/me/funnel/',
+  },
+  myPortfolio: {
+    images: '/portfolio/me/',
+    image: (id: number) => `/portfolio/me/${id}/`,
+    feature: (id: number) => `/portfolio/me/${id}/feature/`,
+    reorder: '/portfolio/me/reorder/',
+    summary: '/portfolio/me/summary/',
+    albums: '/portfolio/me/albums/',
+    createAlbum: '/portfolio/me/albums/create/',
+    album: (id: number) => `/portfolio/me/albums/${id}/`,
+    removeAlbum: (id: number) => `/portfolio/me/albums/${id}/remove/`,
   },
   photographers: {
     list: '/profiles/photographers/',
@@ -121,7 +153,23 @@ export const ENDPOINTS = {
   },
   reviews: {
     create: '/reviews/',
+    detail: (id: number | string) => `/reviews/${id}/`,
+    /** Public list for one photographer. Takes ?rating=&sort=&photos= */
+    forPhotographer: (id: number | string) => `/reviews/photographers/${id}/`,
+    summary: (id: number | string) => `/reviews/photographers/${id}/summary/`,
+    mine: '/reviews/mine/',
+    /** What this buyer is entitled to review right now, both domains. */
+    pending: '/reviews/pending/',
+    received: '/reviews/received/',
     reply: (id: number | string) => `/reviews/${id}/reply/`,
+    helpful: (id: number | string) => `/reviews/${id}/helpful/`,
+    flag: (id: number | string) => `/reviews/${id}/flag/`,
+    products: (productId: number | string) => `/reviews/products/${productId}/`,
+    productSummary: (productId: number | string) =>
+      `/reviews/products/${productId}/summary/`,
+    createProductReview: '/reviews/products/',
+    myProductReviews: '/reviews/products/mine/',
+    removeProductReview: (id: number | string) => `/reviews/products/${id}/remove/`,
   },
   wishlist: {
     list: '/wishlist/',
@@ -132,12 +180,31 @@ export const ENDPOINTS = {
   },
   chat: {
     conversations: '/chat/conversations/',
+    conversation: (id: number | string) => `/chat/conversations/${id}/`,
     messages: (id: number | string) => `/chat/conversations/${id}/messages/`,
+    read: (id: number | string) => `/chat/conversations/${id}/read/`,
+    mute: (id: number | string) => `/chat/conversations/${id}/mute/`,
+    block: (id: number | string) => `/chat/conversations/${id}/block/`,
+    archive: (id: number | string) => `/chat/conversations/${id}/archive/`,
+    leave: (id: number | string) => `/chat/conversations/${id}/leave/`,
+    unreadCount: '/chat/conversations/unread-count/',
+    contacts: '/chat/conversations/contacts/',
+    message: (id: number | string) => `/chat/messages/${id}/`,
+    reportMessage: (id: number | string) => `/chat/messages/${id}/report/`,
   },
   notifications: {
     list: '/notifications/',
+    unreadCount: '/notifications/unread-count/',
     markRead: '/notifications/mark-read/',
+    markUnread: (id: number | string) => `/notifications/${id}/unread/`,
+    remove: (id: number | string) => `/notifications/${id}/`,
+    clear: '/notifications/clear/',
+    preferences: '/notifications/preferences/',
+    devices: '/notifications/devices/',
+    removeDevice: '/notifications/devices/remove/',
   },
+  /** Runtime config the app may read before login — only rows marked public. */
+  publicSettings: '/admin/settings/public/',
   recommendations: '/recommendations/',
   search: '/profiles/photographers/search/',
 } as const;

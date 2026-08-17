@@ -49,11 +49,15 @@ class PhotographerListSerializer(serializers.ModelSerializer):
     service_count = serializers.IntegerField(read_only=True, default=0)
     distance_km = serializers.FloatField(read_only=True, required=False, allow_null=True)
     is_wishlisted = serializers.SerializerMethodField()
+    # The account id behind this profile. `id` is the PROFILE id, and chat
+    # addresses people by user id — without this the app would have to guess or
+    # make a second request just to open a conversation from a profile.
+    user_id = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = PhotographerProfile
         fields = (
-            "id", "display_name", "business_name", "tagline",
+            "id", "user_id", "display_name", "business_name", "tagline",
             "avatar_url", "cover_image_url", "city",
             "base_price", "avg_rating", "bayesian_rating", "reviews_count",
             "years_experience", "completed_bookings",

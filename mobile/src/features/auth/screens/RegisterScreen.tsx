@@ -148,6 +148,7 @@ export function RegisterScreen({ onGoLogin }: Props) {
             error={errors.email?.message}
             keyboardType="email-address"
             autoCapitalize="none"
+            autoCorrect={false}
             autoComplete="email"
           />
         )}

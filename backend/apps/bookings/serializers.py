@@ -141,6 +141,11 @@ class BookingPartySerializer(serializers.Serializer):
     """
 
     id = serializers.IntegerField()
+    # The ACCOUNT id, which differs from `id` on the photographer side (that is
+    # the profile id). Chat addresses people by user id, so opening a thread
+    # from a booking needs this — without it the app would have to fetch the
+    # photographer's profile just to learn who to message.
+    user_id = serializers.IntegerField()
     name = serializers.CharField()
     avatar_url = serializers.CharField(allow_null=True)
     city = serializers.CharField(allow_blank=True)
@@ -216,6 +221,7 @@ class BookingListSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         return {
             "id": obj.photographer_id,
+            "user_id": obj.photographer.user_id,
             "name": obj.photographer.display_name,
             "avatar_url": _absolute(request, obj.photographer.user.avatar),
             "city": obj.photographer.user.city,
@@ -225,6 +231,9 @@ class BookingListSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         return {
             "id": obj.buyer_id,
+            # Same value here — a buyer has no separate profile id — but the
+            # key is present on both sides so the client never has to branch.
+            "user_id": obj.buyer_id,
             "name": obj.buyer.full_name,
             "avatar_url": _absolute(request, obj.buyer.avatar),
             "city": obj.buyer.city,

@@ -92,6 +92,7 @@ export function LoginScreen({ onGoRegister, onGoForgot }: Props) {
             error={errors.email?.message}
             keyboardType="email-address"
             autoCapitalize="none"
+            autoCorrect={false}
             autoComplete="email"
             textContentType="emailAddress"
           />

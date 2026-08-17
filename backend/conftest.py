@@ -106,6 +106,38 @@ def photographer(db):
 
 
 @pytest.fixture
+def other_photographer(db):
+    """A second photographer, for proving one cannot reach the other's data."""
+    from apps.profiles.services import create_photographer_profile
+
+    user = User.objects.create_photographer(
+        email="photog2@test.pk",
+        password=PASSWORD,
+        full_name="Sana Films",
+        city="Lahore",
+        is_email_verified=True,
+    )
+    profile = create_photographer_profile(user)
+    profile.business_name = "Sana Films"
+    profile.is_approved = True
+    profile.save()
+    return profile
+
+
+@pytest.fixture
+def other_photographer_service(db, other_photographer, category):
+    from apps.catalog.models import Service
+
+    return Service.objects.create(
+        photographer=other_photographer,
+        category=category,
+        title="Someone Else's Service",
+        price=Decimal("40000.00"),
+        duration_hours=4,
+    )
+
+
+@pytest.fixture
 def category(db):
     from apps.catalog.models import Category
 
@@ -183,6 +215,35 @@ def make_booking(buyer, booking_payload):
 @pytest.fixture
 def booking(make_booking):
     return make_booking()
+
+
+@pytest.fixture
+def completed_booking(booking, photographer):
+    """
+    A booking driven all the way to COMPLETED through the real state machine.
+
+    Built by transitioning rather than by `Booking.objects.create(status=...)`:
+    reviews depend on `has_review`, the status history and the photographer's
+    metrics all being consistent, and a hand-built row has none of them. The
+    event date is moved into the past first because completion before the shoot
+    is deliberately refused.
+    """
+    from apps.bookings.services import accept_booking, complete_booking
+
+    accept_booking(booking, photographer.user)
+    booking.event_date = date.today() - timedelta(days=1)
+    booking.save(update_fields=["event_date"])
+    return complete_booking(booking, photographer.user)
+
+
+@pytest.fixture
+def paid_order_item(funded_buyer, product):
+    """One purchased product — the eligibility proof for a product review."""
+    from apps.marketplace.services import add_to_cart, checkout
+
+    add_to_cart(funded_buyer, product)
+    order = checkout(funded_buyer)
+    return order.items.first()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -272,4 +333,25 @@ def photographer_client(photographer):
 def other_buyer_client(other_buyer):
     client = APIClient()
     client.force_authenticate(user=other_buyer)
+    return client
+
+
+@pytest.fixture
+def other_photographer_client(other_photographer):
+    client = APIClient()
+    client.force_authenticate(user=other_photographer.user)
+    return client
+
+
+@pytest.fixture
+def admin_client_authed(admin_user):
+    """
+    An authenticated ADMIN client.
+
+    Named to avoid colliding with pytest-django's own `admin_client`, which logs
+    into the Django admin with a session rather than a JWT and would silently
+    fail every `IsAdmin` check here.
+    """
+    client = APIClient()
+    client.force_authenticate(user=admin_user)
     return client

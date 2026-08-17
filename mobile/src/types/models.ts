@@ -70,7 +70,10 @@ export interface Category extends CategoryMini {
  * commit — a drift here surfaces as an undefined deep inside a screen.
  */
 export interface PhotographerSummary {
+  /** Profile id — what booking and portfolio endpoints take. */
   id: number;
+  /** Account id — what chat takes. The two are different. */
+  user_id: number;
   display_name: string;
   business_name: string;
   tagline: string;
@@ -142,6 +145,7 @@ export interface PhotographerDetail extends PhotographerSummary {
   rating_breakdown: RatingBreakdown;
 }
 
+/** Mirrors catalog ServiceSerializer. */
 export interface Service {
   id: number;
   title: string;
@@ -150,10 +154,28 @@ export interface Service {
   pricing_unit: 'FIXED' | 'PER_HOUR' | 'PER_DAY' | 'PER_EVENT';
   duration_hours: number;
   edited_photos_count: number;
+  raw_photos_included: boolean;
   delivery_days: number;
   includes: string[];
+  advance_payment_percent: number;
   category: CategoryMini;
-  cover_image: string | null;
+  // The serializer sends a resolved URL, not the storage path. This said
+  // `cover_image` until a type diff against the live API caught it — the
+  // field was simply always undefined wherever it was read.
+  cover_image_url: string | null;
+  packages: ServicePackage[];
+  booking_count: number;
+}
+
+export interface ServicePackage {
+  id: number;
+  name: string;
+  price: string;
+  description: string;
+  features: string[];
+  duration_hours: number;
+  edited_photos_count: number;
+  is_popular: boolean;
 }
 
 /**
@@ -164,7 +186,15 @@ export interface Service {
  * whichever party it is not.
  */
 export interface BookingParty {
+  /** Profile id on the photographer side, account id on the buyer side. */
   id: number;
+  /**
+   * The ACCOUNT id, present on both sides.
+   *
+   * Chat addresses people by user id, and for a photographer that is NOT `id`
+   * — that one is the profile. Opening a thread from a booking needs this.
+   */
+  user_id: number;
   name: string;
   avatar_url: string | null;
   city: string;
@@ -314,18 +344,133 @@ export interface AvailabilityDayDetail extends AvailabilityDay {
   available_start_times: string[];
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// MODULE 9 — reviews & ratings
+//
+// These mirror `apps/reviews/serializers.py` field for field. The names here
+// were checked against live responses rather than read off the serializer by
+// eye — the last time that shortcut was taken, `Service.cover_image` silently
+// read `undefined` everywhere because the API sends `cover_image_url`.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type SentimentLabel = 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | '';
+
+export interface ReviewImage {
+  id: number;
+  caption: string;
+  image_url: string | null;
+  thumbnail_url: string | null;
+}
+
+export interface ReviewReply {
+  id: number;
+  comment: string;
+  is_edited: boolean;
+  photographer_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SubRatings {
+  quality: number | null;
+  professionalism: number | null;
+  communication: number | null;
+  value: number | null;
+  punctuality: number | null;
+}
+
 export interface Review {
   id: number;
   rating: number;
   title: string;
   comment: string;
-  buyer: Pick<User, 'id' | 'full_name' | 'avatar_url'>;
-  images: { id: number; image: string; thumbnail: string | null }[];
-  reply: { comment: string; created_at: string } | null;
+  buyer_name: string;
+  buyer_avatar: string | null;
+  photographer_id: number;
+  photographer_name: string;
+  /** What was actually shot — a 5★ reads differently under a full-day wedding. */
+  service_name: string;
+  sub_ratings: SubRatings;
+  images: ReviewImage[];
+  reply: ReviewReply | null;
   helpful_count: number;
-  sentiment: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | '';
+  /** Per-caller: whether *you* marked it helpful. */
+  marked_helpful: boolean;
+  /** Server-computed, like `available_actions` — the 24h window plus "no reply yet". */
+  can_edit: boolean;
+  is_hidden: boolean;
+  hidden_reason: string;
   created_at: string;
 }
+
+/**
+ * A review as the photographer who received it sees it.
+ *
+ * Adds the model's sentiment label, which is deliberately absent from the
+ * public shape: a machine label on somebody else's words is not evidence.
+ */
+export interface OwnedReview extends Review {
+  sentiment: SentimentLabel;
+  sentiment_score: string | null;
+}
+
+export interface ReviewSummary {
+  average_rating: number;
+  total_reviews: number;
+  with_comment: number;
+  with_photos: number;
+  recommend_percent: number;
+  breakdown: RatingBreakdown;
+  sub_ratings: SubRatings;
+  sentiment: Record<'POSITIVE' | 'NEUTRAL' | 'NEGATIVE', number>;
+}
+
+export interface ProductReview {
+  id: number;
+  rating: number;
+  title: string;
+  comment: string;
+  helpful_count: number;
+  buyer_name: string;
+  buyer_avatar: string | null;
+  product_title: string;
+  product_slug: string;
+  created_at: string;
+}
+
+/** A completed shoot still awaiting its review. */
+export interface PendingBookingReview {
+  booking_id: number;
+  photographer_id: number;
+  photographer_name: string;
+  photographer_avatar: string | null;
+  service_name: string;
+  event_date: string;
+}
+
+export interface PendingProductReview {
+  order_item_id: number;
+  product_title: string;
+  product_slug: string;
+  thumbnail_url: string | null;
+  purchased_at: string;
+}
+
+export interface PendingReviews {
+  bookings: PendingBookingReview[];
+  order_items: PendingProductReview[];
+}
+
+export type FlagReason =
+  | 'INAPPROPRIATE'
+  | 'COPYRIGHT'
+  | 'SPAM'
+  | 'FAKE'
+  | 'HARASSMENT'
+  | 'OFF_PLATFORM'
+  | 'OTHER';
+
+export type ReviewSort = 'recent' | 'oldest' | 'helpful' | 'highest' | 'lowest';
 
 /** Mirrors marketplace SellerMiniSerializer. */
 export interface ProductSeller {
@@ -572,36 +717,357 @@ export interface Recommendation extends PhotographerSummary {
   strategy: 'HYBRID' | 'CONTENT' | 'COLLABORATIVE' | 'POPULARITY' | 'EXPLORATION';
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// MODULE 12 — notifications
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** The filter chips the bell offers. Derived server-side from the type prefix. */
+export type NotificationCategory =
+  | 'bookings'
+  | 'messages'
+  | 'reviews'
+  | 'marketplace'
+  | 'account'
+  | 'platform';
+
 export interface Notification {
   id: number;
   notification_type: string;
+  category: NotificationCategory;
   title: string;
   body: string;
+  image_url: string;
+  /** Deep-link target, sent as data so the app never parses meaning out of text. */
   action_screen: string;
   action_id: string;
+  payload: Record<string, unknown>;
   is_read: boolean;
+  read_at: string | null;
+  actor_name: string | null;
+  actor_avatar: string | null;
   created_at: string;
+}
+
+export interface NotificationBadges {
+  total: number;
+  bookings: number;
+  messages: number;
+  reviews: number;
+  marketplace: number;
+}
+
+export interface NotificationPreferences {
+  push_enabled: boolean;
+  email_enabled: boolean;
+  sms_enabled: boolean;
+  booking_updates: boolean;
+  chat_messages: boolean;
+  review_activity: boolean;
+  marketplace_activity: boolean;
+  promotions: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string;
+  quiet_hours_end: string;
+  updated_at: string;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODULE 13 — chat
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface ChatParticipant {
+  id: number;
+  full_name: string;
+  role: UserRole;
+  avatar_url: string | null;
+  business_name: string | null;
+  is_online: boolean;
+  last_seen_at: string | null;
+}
+
+export interface ConversationBookingRef {
+  id: number;
+  status: BookingStatus;
+  event_date: string;
+  service_title: string;
 }
 
 export interface Conversation {
   id: number;
-  other_participant: Pick<User, 'id' | 'full_name' | 'avatar_url' | 'role'>;
+  other_participant: ChatParticipant | null;
   last_message_text: string;
   last_message_at: string | null;
+  message_count: number;
   unread_count: number;
-  is_online: boolean;
+  is_muted: boolean;
+  is_blocked: boolean;
+  is_archived: boolean;
+  booking: ConversationBookingRef | null;
+  created_at: string;
 }
+
+export interface ConversationDetail extends Conversation {
+  /** Where to draw the "unread from here" divider. */
+  last_read_message_id: number;
+}
+
+export interface MessageAttachment {
+  id: number;
+  file_name: string;
+  file_size_kb: number;
+  mime_type: string;
+  width: number;
+  height: number;
+  file_url: string | null;
+  thumbnail_url: string | null;
+}
+
+export type MessageType = 'TEXT' | 'IMAGE' | 'FILE' | 'BOOKING_REF' | 'SYSTEM';
 
 export interface Message {
   id: number;
-  conversation_id: number;
-  sender_id: number;
-  sender_name?: string;
+  conversation: number;
+  sender: number;
+  sender_name: string;
+  sender_avatar: string | null;
+  /** Which side to draw the bubble on. Server-computed so the REST row and the
+   *  WebSocket frame are the same shape. */
+  is_mine: boolean;
+  message_type: MessageType;
   body: string;
-  message_type: 'TEXT' | 'IMAGE' | 'FILE' | 'BOOKING_REF' | 'SYSTEM';
-  client_id?: string;
+  client_id: string;
+  is_edited: boolean;
+  is_deleted: boolean;
+  attachments: MessageAttachment[];
+  delivered_at: string | null;
+  read_at: string | null;
   created_at: string;
-  read_at?: string | null;
-  /** Client-side only: an optimistic bubble not yet acknowledged. */
+  /** Client-side only: an optimistic bubble the server has not acknowledged. */
   pending?: boolean;
+  /** Client-side only: the optimistic send failed and can be retried. */
+  failed?: boolean;
+}
+
+export interface ChatContact {
+  id: number;
+  full_name: string;
+  role: UserRole;
+  avatar_url: string | null;
+  business_name: string | null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODULE 5 — the photographer managing their own listings and calendar
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** A service as its owner sees it — adds live/archived and the delete guard. */
+export interface OwnService extends Service {
+  is_active: boolean;
+  display_order: number;
+  min_hours: number;
+  max_travel_km: number;
+  view_count: number;
+  /** False once it has bookings — the UI then offers Archive instead. */
+  can_delete: boolean;
+}
+
+export interface ServiceWritePayload {
+  title: string;
+  description?: string;
+  category: number;
+  price: string;
+  pricing_unit?: Service['pricing_unit'];
+  min_hours?: number;
+  duration_hours?: number;
+  edited_photos_count?: number;
+  raw_photos_included?: boolean;
+  delivery_days?: number;
+  includes?: string[];
+  advance_payment_percent?: number;
+  max_travel_km?: number;
+}
+
+export interface ServicePackagePayload {
+  name: string;
+  price: string;
+  description?: string;
+  features?: string[];
+  duration_hours?: number;
+  edited_photos_count?: number;
+  is_popular?: boolean;
+}
+
+export interface AvailabilityRule {
+  weekday: number;
+  weekday_label: string;
+  is_available: boolean;
+  start_time: string;
+  end_time: string;
+  max_bookings: number;
+}
+
+export interface Blackout {
+  id: number;
+  start_date: string;
+  end_date: string;
+  days: number;
+  reason: string;
+  is_full_day: boolean;
+  start_time: string | null;
+  end_time: string | null;
+  created_at: string;
+}
+
+export interface MyCalendar {
+  is_accepting_bookings: boolean;
+  rules: AvailabilityRule[];
+  blackouts: Blackout[];
+}
+
+/**
+ * The result of blocking a range.
+ *
+ * `conflicting_bookings` is how many commitments fall inside it. Blocking
+ * cancels nothing — the count exists so the photographer can cancel those
+ * deliberately, with a reason the buyer sees.
+ */
+export interface BlackoutResult {
+  blackout: Blackout;
+  conflicting_bookings: number;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODULE 6 — portfolio
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Three sizes, generated at upload.
+ *
+ * The grid loads `thumbnail_url` (~20 KB); the full-screen viewer loads
+ * `image_large_url` only when tapped. Using one size everywhere is the
+ * biggest cause of slow portfolio screens on 3G.
+ */
+export interface PortfolioImage {
+  id: number;
+  caption: string;
+  alt_text: string;
+  image_url: string | null;
+  thumbnail_url: string | null;
+  image_large_url: string | null;
+  width: number;
+  height: number;
+  aspect_ratio: number;
+  is_featured: boolean;
+  display_order: number;
+  album: number | null;
+  album_title: string | null;
+  category: CategoryMini | null;
+  like_count: number;
+  view_count: number;
+  is_liked: boolean;
+  created_at: string;
+}
+
+export interface PortfolioAlbum {
+  id: number;
+  title: string;
+  description: string;
+  cover_image_url: string | null;
+  category: CategoryMini | null;
+  shoot_date: string | null;
+  location: string;
+  client_name: string;
+  is_public: boolean;
+  is_featured: boolean;
+  display_order: number;
+  image_count: number;
+  view_count: number;
+  created_at: string;
+}
+
+export interface PortfolioSummary {
+  images: number;
+  featured: number;
+  albums: number;
+  videos: number;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODULE 15 — the photographer's analytics dashboard
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface DashboardOverview {
+  pending_requests: number;
+  upcoming_shoots: number;
+  completed_shoots: number;
+  bookings_this_month: number;
+  earnings_this_month: string;
+  lifetime_earnings: string;
+  avg_rating: string;
+  reviews_count: number;
+  success_rate: string;
+  response_time_hours: string;
+  profile_views: number;
+  is_accepting_bookings: boolean;
+}
+
+export interface RevenuePoint {
+  year: number;
+  month: number;
+  /** "Aug" — pre-formatted so the chart does no date maths. */
+  label: string;
+  bookings_completed: number;
+  gross_revenue: string;
+  net_earnings: string;
+  growth_percent: number;
+}
+
+export interface DailyPoint {
+  date: string;
+  profile_views: number;
+  bookings_created: number;
+  bookings_completed: number;
+  revenue: string;
+}
+
+/**
+ * Seen → clicked → enquired → booked.
+ *
+ * Where it narrows is the actionable part: plenty of views and no bookings is
+ * a pricing or portfolio problem; no views is a visibility problem.
+ */
+export interface Funnel {
+  days: number;
+  impressions: number;
+  profile_views: number;
+  clicks: number;
+  inquiries: number;
+  bookings: number;
+  completed: number;
+  /** Pre-computed — a client that divides shows NaN when views are 0. */
+  view_to_booking_rate: number;
+}
+
+export interface TopService {
+  service_id: number;
+  title: string;
+  bookings: number;
+  completed: number;
+  revenue: string;
+}
+
+export interface CategorySplit {
+  category: string;
+  bookings: number;
+  revenue: string;
+}
+
+export interface Dashboard {
+  overview: DashboardOverview;
+  revenue_series: RevenuePoint[];
+  daily_series: DailyPoint[];
+  funnel: Funnel;
+  top_services: TopService[];
+  category_split: CategorySplit[];
+  upcoming: BookingSummary[];
 }

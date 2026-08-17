@@ -30,6 +30,26 @@ export function Input({
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(isPassword);
 
+  /**
+   * A password field must never be autocapitalised, autocorrected or
+   * spell-checked.
+   *
+   * WHY THIS IS NOT OPTIONAL
+   * ------------------------
+   * `autoCapitalize` defaults to `'sentences'`. `secureTextEntry` suppresses it
+   * on most keyboards — but the reveal toggle below sets `secureTextEntry` to
+   * false, and from that moment this is a plain text field with sentence
+   * capitalisation and predictive text switched on. Typing "buyer12345" then
+   * submits "Buyer12345", the server correctly rejects it, and the user is told
+   * "No active account found with the given credentials" while looking at a
+   * password that appears exactly right.
+   *
+   * Declared BEFORE the spread so a caller can still override it deliberately.
+   */
+  const passwordSafeInput = isPassword
+    ? { autoCapitalize: 'none' as const, autoCorrect: false, spellCheck: false }
+    : {};
+
   return (
     <View style={styles.wrapper}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
@@ -51,6 +71,7 @@ export function Input({
         ) : null}
 
         <TextInput
+          {...passwordSafeInput}
           {...rest}
           style={styles.input}
           placeholderTextColor={colors.dim}

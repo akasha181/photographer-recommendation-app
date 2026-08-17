@@ -22,6 +22,9 @@ import type {
   BuyerProfile,
   PhotographerSelfProfile,
 } from '../../../types/models';
+import { useChatUnreadTotal } from '../../chat/hooks/useChat';
+import { useUnreadBadge } from '../../notifications/hooks/useNotifications';
+import { usePendingReviews } from '../../reviews/hooks/useReviews';
 import {
   useMyProfile,
   useSellerSummary,
@@ -46,12 +49,28 @@ export function ProfileScreen({
   onOpenPurchases,
   onOpenBookings,
   onOpenSellerProducts,
+  onOpenServices,
+  onOpenCalendar,
+  onEditProfile,
+  onOpenReviews,
+  onOpenMessages,
+  onOpenNotifications,
+  onOpenNotificationSettings,
 }: {
   onOpenWallet: () => void;
   onOpenWishlist: () => void;
   onOpenPurchases: () => void;
   onOpenBookings: () => void;
   onOpenSellerProducts?: () => void;
+  /** Photographer-only — Module 5. Absent for buyers. */
+  onOpenServices?: () => void;
+  onOpenCalendar?: () => void;
+  onEditProfile?: () => void;
+  /** Module 9 — "my reviews" for a buyer, "reviews received" for a photographer. */
+  onOpenReviews?: () => void;
+  onOpenMessages?: () => void;
+  onOpenNotifications?: () => void;
+  onOpenNotificationSettings?: () => void;
 }) {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -63,6 +82,12 @@ export function ProfileScreen({
 
   const isPhotographer = user?.role === 'PHOTOGRAPHER';
   const sellerSummary = useSellerSummary();
+
+  // Counters for the rows below. Each is its own cached query, so the same
+  // number shown here and on the bell can never disagree.
+  const badge = useUnreadBadge();
+  const chatUnread = useChatUnreadTotal();
+  const pendingReviews = usePendingReviews();
 
   if (profile.isLoading) return <LoadingState label="Loading your profile…" />;
   if (profile.isError || !profile.data) {
@@ -202,6 +227,44 @@ export function ProfileScreen({
           </View>
         ) : null}
 
+        {/* ─── Studio (photographer only) ──────────────────────────────── */}
+        {photographerProfile ? (
+          <Section title="Your studio">
+            {onOpenServices ? (
+              <Row
+                icon="camera-outline"
+                label="Services & pricing"
+                value={String(photographerProfile.services?.length ?? 0)}
+                onPress={onOpenServices}
+              />
+            ) : null}
+            {onOpenCalendar ? (
+              <Row
+                icon="calendar-outline"
+                label="Availability"
+                onPress={onOpenCalendar}
+              />
+            ) : null}
+            {onEditProfile ? (
+              <Row
+                icon="create-outline"
+                label="Edit public profile"
+                onPress={onEditProfile}
+              />
+            ) : null}
+            {onOpenSellerProducts ? (
+              <Row
+                icon="pricetags-outline"
+                label="My products"
+                value={
+                  sellerSummary.data ? String(sellerSummary.data.products_live) : undefined
+                }
+                onPress={onOpenSellerProducts}
+              />
+            ) : null}
+          </Section>
+        ) : null}
+
         {/* ─── Navigation ──────────────────────────────────────────────── */}
         <Section title="Your activity">
           <Row
@@ -222,14 +285,35 @@ export function ProfileScreen({
             onPress={onOpenWishlist}
           />
           <Row icon="download-outline" label="Purchases" onPress={onOpenPurchases} />
-          {isPhotographer && onOpenSellerProducts ? (
+          {onOpenReviews ? (
             <Row
-              icon="pricetags-outline"
-              label="My products"
+              icon="star-outline"
+              label={isPhotographer ? 'Reviews received' : 'My reviews'}
+              // The badge is the outstanding count on each side: replies owed
+              // for a photographer, reviews owed for a buyer.
               value={
-                sellerSummary.data ? String(sellerSummary.data.products_live) : undefined
+                isPhotographer
+                  ? undefined
+                  : pendingReviews.data
+                    ? String(
+                        pendingReviews.data.bookings.length +
+                          pendingReviews.data.order_items.length,
+                      )
+                    : undefined
               }
-              onPress={onOpenSellerProducts}
+              onPress={onOpenReviews}
+            />
+          ) : null}
+          {onOpenMessages ? (
+            <Row
+              icon="chatbubbles-outline"
+              label="Messages"
+              value={
+                chatUnread.data?.unread_total
+                  ? String(chatUnread.data.unread_total)
+                  : undefined
+              }
+              onPress={onOpenMessages}
             />
           ) : null}
         </Section>
@@ -238,6 +322,21 @@ export function ProfileScreen({
           <Row icon="person-outline" label={user?.full_name ?? 'Profile'} muted />
           <Row icon="call-outline" label={user?.phone || 'No phone added'} muted />
           <Row icon="location-outline" label={user?.city || 'No city set'} muted />
+          {onOpenNotifications ? (
+            <Row
+              icon="notifications-outline"
+              label="Notifications"
+              value={badge.data?.total ? String(badge.data.total) : undefined}
+              onPress={onOpenNotifications}
+            />
+          ) : null}
+          {onOpenNotificationSettings ? (
+            <Row
+              icon="options-outline"
+              label="Notification settings"
+              onPress={onOpenNotificationSettings}
+            />
+          ) : null}
         </Section>
 
         <Pressable onPress={confirmLogout} style={styles.logout}>
