@@ -1,4 +1,4 @@
-"""Portfolio Media routes — mounted at /api/v1/portfolio/"""
+"""Portfolio routes — mounted at /api/v1/portfolio/"""
 
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter

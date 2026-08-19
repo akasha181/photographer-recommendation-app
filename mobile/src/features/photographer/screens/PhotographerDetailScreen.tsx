@@ -24,9 +24,18 @@ interface Props {
   photographerId: number;
   onBack: () => void;
   onBook: (serviceId: number) => void;
+  /** Module 9 — the full, filterable review list with the distribution. */
+  onOpenReviews?: (name: string) => void;
+  onMessage?: (userId: number, name: string) => void;
 }
 
-export function PhotographerDetailScreen({ photographerId, onBack, onBook }: Props) {
+export function PhotographerDetailScreen({
+  photographerId,
+  onBack,
+  onBook,
+  onOpenReviews,
+  onMessage,
+}: Props) {
   const { width } = useWindowDimensions();
   const { data, isLoading, isError, error, refetch } =
     usePhotographerDetail(photographerId);
@@ -52,6 +61,17 @@ export function PhotographerDetailScreen({ photographerId, onBack, onBook }: Pro
           <Pressable onPress={onBack} hitSlop={10} style={styles.backButton}>
             <Ionicons name="chevron-back" size={22} color={colors.text} />
           </Pressable>
+          {onMessage ? (
+            <Pressable
+              onPress={() => onMessage(data.user_id, data.display_name)}
+              hitSlop={10}
+              style={styles.backButton}
+              accessibilityRole="button"
+              accessibilityLabel={`Message ${data.display_name}`}
+            >
+              <Ionicons name="chatbubble-outline" size={20} color={colors.text} />
+            </Pressable>
+          ) : null}
         </View>
 
         <View style={styles.identity}>
@@ -184,6 +204,19 @@ export function PhotographerDetailScreen({ photographerId, onBack, onBook }: Pro
                 ) : null}
               </View>
             ))}
+
+            {onOpenReviews && data.reviews_count > 0 ? (
+              <Pressable
+                onPress={() => onOpenReviews(data.display_name)}
+                style={styles.seeAll}
+                accessibilityRole="button"
+              >
+                <Text style={styles.seeAllText}>
+                  See all {data.reviews_count} reviews
+                </Text>
+                <Ionicons name="chevron-forward" size={15} color={colors.gold} />
+              </Pressable>
+            ) : null}
           </Section>
         ) : null}
 
@@ -405,6 +438,14 @@ const styles = StyleSheet.create({
   replyLabel: { ...typography.tiny, color: colors.gold, fontWeight: '700' },
   replyBody: { ...typography.tiny, color: colors.sub, lineHeight: 17 },
   bottomSpace: { height: spacing.huge },
+  seeAll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
+  },
+  seeAllText: { ...typography.caption, color: colors.gold },
   bookingBar: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -53,6 +53,16 @@ app.conf.beat_schedule = {
         "task": "apps.reviews.tasks.check_review_eligibility",
         "schedule": crontab(hour=11, minute=0),
     },
+    # Runs AFTER retrain-models (02:00) so a fresh artifact is what relabels
+    # the backlog. Bounded per run — see the task's docstring.
+    "recompute-review-sentiment": {
+        "task": "apps.reviews.tasks.recompute_review_sentiment",
+        "schedule": crontab(hour=2, minute=45),
+    },
+    "purge-old-notifications": {
+        "task": "apps.notifications.tasks.purge_old_notifications",
+        "schedule": crontab(hour=4, minute=30),
+    },
 }
 
 

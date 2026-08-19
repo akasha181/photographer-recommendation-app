@@ -81,3 +81,106 @@ class ServiceMiniSerializer(serializers.ModelSerializer):
     class Meta:
         model = Service
         fields = ("id", "title", "price", "duration_hours")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# MODULE 5 — a photographer managing their own catalogue
+# ═══════════════════════════════════════════════════════════════════════════
+class OwnServiceSerializer(ServiceSerializer):
+    """
+    The owner's view of their own listing.
+
+    Adds the two things only they need: whether it is live, and how many
+    bookings it has — which is what makes "archive" versus "delete"
+    understandable without reading the error message first.
+    """
+
+    can_delete = serializers.SerializerMethodField()
+
+    class Meta(ServiceSerializer.Meta):
+        fields = ServiceSerializer.Meta.fields + (
+            "is_active", "display_order", "min_hours", "max_travel_km",
+            "view_count", "can_delete",
+        )
+
+    def get_can_delete(self, obj) -> bool:
+        """False once it has history — the UI then offers Archive instead."""
+        return obj.booking_count == 0
+
+
+class ServiceWriteSerializer(serializers.ModelSerializer):
+    """
+    What a photographer may set on a service.
+
+    `photographer` is absent on purpose — it comes from the authenticated
+    user, never the body, or one photographer could add listings to another's
+    profile. `booking_count` and `view_count` are derived and equally absent.
+    """
+
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.filter(is_active=True)
+    )
+
+    class Meta:
+        model = Service
+        fields = (
+            "title", "description", "category", "price", "pricing_unit",
+            "min_hours", "duration_hours", "edited_photos_count",
+            "raw_photos_included", "delivery_days", "includes",
+            "advance_payment_percent", "max_travel_km", "display_order",
+            "cover_image",
+        )
+
+    def validate_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Set a price above zero.")
+        if value > 5_000_000:
+            raise serializers.ValidationError(
+                "That price looks like a typo. Contact support for enterprise packages."
+            )
+        return value
+
+    def validate_title(self, value):
+        value = value.strip()
+        if len(value) < 5:
+            raise serializers.ValidationError(
+                "Give the service a descriptive title buyers will recognise."
+            )
+        return value
+
+    def validate_includes(self, value):
+        """`includes` is a JSON list of bullet points, not free text."""
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Send a list of bullet points.")
+        return [str(item).strip()[:120] for item in value if str(item).strip()][:12]
+
+    def validate(self, attrs):
+        minimum = attrs.get("min_hours", getattr(self.instance, "min_hours", 1))
+        duration = attrs.get(
+            "duration_hours", getattr(self.instance, "duration_hours", 1)
+        )
+        if minimum and duration and minimum > duration:
+            raise serializers.ValidationError(
+                {"min_hours": "The minimum cannot exceed the standard duration."}
+            )
+        return attrs
+
+
+class ServicePackageWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ServicePackage
+        fields = (
+            "name", "price", "description", "features",
+            "duration_hours", "edited_photos_count", "is_popular",
+            "display_order",
+        )
+
+    def validate_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Set a price above zero.")
+        return value
+
+    def validate_features(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Send a list of features.")
+        return [str(item).strip()[:120] for item in value if str(item).strip()][:12]

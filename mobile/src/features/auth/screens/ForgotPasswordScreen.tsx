@@ -135,6 +135,7 @@ export function ForgotPasswordScreen({ onGoLogin }: Props) {
                 error={requestForm.formState.errors.email?.message}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
               />
             )}
           />

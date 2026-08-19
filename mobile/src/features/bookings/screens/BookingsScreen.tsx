@@ -51,6 +51,12 @@ const EMPTY_COPY: Record<BookingGroup, { title: string; detail: string }> = {
   },
 };
 
+/** Pending wins when non-empty — it is the only group with a deadline. */
+function firstNonEmpty(counts: Record<BookingGroup, number>): BookingGroup {
+  const order: BookingGroup[] = ['pending', 'upcoming', 'completed', 'cancelled'];
+  return order.find((key) => counts[key] > 0) ?? 'pending';
+}
+
 export function BookingsScreen({
   perspective,
   onOpenBooking,
@@ -60,10 +66,26 @@ export function BookingsScreen({
   onOpenBooking: (bookingId: number) => void;
   onBrowse?: () => void;
 }) {
-  const [group, setGroup] = useState<BookingGroup>('pending');
+  const [group, setGroup] = useState<BookingGroup | null>(null);
 
-  const bookings = useBookings(group);
   const counts = useBookingCounts();
+
+  /**
+   * Land on a tab that has something in it.
+   *
+   * Defaulting to "pending" opened an empty screen for an established
+   * photographer with 410 completed shoots and nothing awaiting a reply —
+   * which reads as "this app has no data for me" rather than "you're all
+   * caught up". Pending still wins when it is non-empty, because an
+   * unanswered request is the only thing here with a deadline.
+   *
+   * Once the user picks a tab, their choice sticks: `group` stays null only
+   * until the counts arrive.
+   */
+  const activeGroup: BookingGroup =
+    group ?? (counts.data ? firstNonEmpty(counts.data) : 'pending');
+
+  const bookings = useBookings(activeGroup);
 
   const rows: BookingSummary[] =
     bookings.data?.pages.flatMap((page) => page.items) ?? [];
@@ -88,7 +110,7 @@ export function BookingsScreen({
         style={styles.tabsWrap}
       >
         {TABS.map((tab) => {
-          const active = tab.key === group;
+          const active = tab.key === activeGroup;
           const count = counts.data?.[tab.key] ?? 0;
           return (
             <Pressable
@@ -135,12 +157,16 @@ export function BookingsScreen({
           ListEmptyComponent={
             <EmptyState
               icon="calendar-outline"
-              title={EMPTY_COPY[group].title}
-              detail={EMPTY_COPY[group].detail}
+              title={EMPTY_COPY[activeGroup].title}
+              detail={EMPTY_COPY[activeGroup].detail}
               actionLabel={
-                perspective === 'buyer' && group === 'pending' ? 'Find a photographer' : undefined
+                perspective === 'buyer' && activeGroup === 'pending'
+                  ? 'Find a photographer'
+                  : undefined
               }
-              onAction={perspective === 'buyer' && group === 'pending' ? onBrowse : undefined}
+              onAction={
+                perspective === 'buyer' && activeGroup === 'pending' ? onBrowse : undefined
+              }
             />
           }
           onEndReachedThreshold={0.4}

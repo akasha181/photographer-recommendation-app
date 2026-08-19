@@ -1,7 +1,12 @@
 """Analytics & Reporting routes — mounted at /api/v1/analytics/"""
 
-from django.urls import path
+from rest_framework.routers import DefaultRouter
+
+from apps.analytics.views import MyAnalyticsViewSet
 
 app_name = "analytics"
 
-urlpatterns: list[path] = []
+router = DefaultRouter()
+router.register("me", MyAnalyticsViewSet, basename="my-analytics")
+
+urlpatterns = router.urls

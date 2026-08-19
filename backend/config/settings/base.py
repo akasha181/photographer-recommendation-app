@@ -296,10 +296,36 @@ SIMPLE_JWT = {
 # ═══════════════════════════════════════════════════════════════════════════
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:5173,http://localhost:19006",
+    default="http://localhost:5173,http://localhost:19006,http://localhost:8081",
     cast=Csv(),
 )
 CORS_ALLOW_CREDENTIALS = True
+
+# The default allow-list does NOT include our own custom headers, and a header
+# missing from it is refused at the preflight — so `POST /bookings/` and
+# `POST /marketplace/orders/checkout/` would fail from any browser origin while
+# working perfectly from Expo Go (native requests never preflight). That is the
+# worst possible shape for a bug: invisible on the device it was tested on.
+#
+# `Idempotency-Key` is part of the API contract in every environment, so it
+# belongs here rather than in dev.py.
+CORS_ALLOW_HEADERS = (
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "idempotency-key",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+)
+
+# `X-Request-ID` is echoed on every response (see core.middleware). Exposing it
+# is what lets a browser client quote it in a bug report — without this the
+# header is present on the wire and unreadable from JavaScript.
+CORS_EXPOSE_HEADERS = ("x-request-id",)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # REDIS — /0 cache, /1 celery broker, /2 channels layer

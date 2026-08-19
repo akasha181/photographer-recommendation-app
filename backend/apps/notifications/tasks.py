@@ -37,6 +37,22 @@ def send_push_notification(self, notification_id: int):
         )
         return {"skipped": "push disabled"}
 
+    # Quiet hours suppress the PUSH channel only — the in-app record was
+    # already written, so nothing is lost, it just does not buzz at 03:00.
+    # Critical types (a cancelled booking, a blocked account) ignore the window:
+    # somebody who muted everything still has to learn that a paid shoot is off.
+    from apps.notifications.services import CRITICAL_TYPES, in_quiet_hours
+
+    if (
+        notification.notification_type not in CRITICAL_TYPES
+        and in_quiet_hours(prefs)
+    ):
+        NotificationDelivery.objects.update_or_create(
+            notification=notification, channel="PUSH",
+            defaults={"status": "SKIPPED", "provider_response": "quiet hours"},
+        )
+        return {"skipped": "quiet hours"}
+
     tokens = list(
         PushToken.objects.filter(
             user=notification.recipient, is_active=True
@@ -99,3 +115,36 @@ def send_broadcast(broadcast_id: int):
     broadcast.recipient_count = sent
     broadcast.save(update_fields=["sent_at", "recipient_count", "updated_at"])
     return {"sent": sent}
+
+
+#: A notification is a nudge, not a record. Past this it is scrollback nobody
+#: reads, and the table is one of the fastest-growing in the schema.
+RETAIN_READ_DAYS = 30
+RETAIN_UNREAD_DAYS = 90
+
+
+@shared_task
+def purge_old_notifications():
+    """
+    Trim the notification table.
+
+    Read rows go after 30 days, unread after 90. The asymmetry is deliberate: a
+    notification nobody has opened may still be the only record of something
+    they need, so it gets three times as long before it is dropped.
+    """
+    from datetime import timedelta
+
+    from apps.notifications.models import Notification
+
+    now = timezone.now()
+    read_deleted, _ = Notification.objects.filter(
+        is_read=True, created_at__lt=now - timedelta(days=RETAIN_READ_DAYS)
+    ).delete()
+    unread_deleted, _ = Notification.objects.filter(
+        is_read=False, created_at__lt=now - timedelta(days=RETAIN_UNREAD_DAYS)
+    ).delete()
+
+    logger.info(
+        "Notifications purged: %s read, %s unread", read_deleted, unread_deleted
+    )
+    return {"read": read_deleted, "unread": unread_deleted}

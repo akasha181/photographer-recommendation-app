@@ -44,10 +44,15 @@ export function BookingDetailScreen({
   bookingId,
   perspective,
   onBack,
+  onWriteReview,
+  onOpenChat,
 }: {
   bookingId: number;
   perspective: 'buyer' | 'photographer';
   onBack: () => void;
+  /** Module 9 — offered only when the server puts "review" in available_actions. */
+  onWriteReview?: (booking: BookingDetail) => void;
+  onOpenChat?: (booking: BookingDetail) => void;
 }) {
   const query = useBookingDetail(bookingId);
   const [prompt, setPrompt] = useState<'reject' | 'cancel' | null>(null);
@@ -82,6 +87,10 @@ export function BookingDetailScreen({
     Alert.alert('Could not do that', (error as ApiError)?.message ?? 'Please try again.');
 
   const runAction = (action: BookingAction) => {
+    if (action === 'review') {
+      onWriteReview?.(booking);
+      return;
+    }
     if (action === 'accept') {
       accept.mutate({ id: bookingId }, { onError: fail });
       return;
@@ -154,6 +163,15 @@ export function BookingDetailScreen({
               {perspective === 'buyer' ? 'Photographer' : 'Buyer'} · {other.city}
             </Text>
           </View>
+          {onOpenChat ? (
+            <Pressable
+              onPress={() => onOpenChat(booking)}
+              style={styles.callButton}
+              accessibilityLabel={`Message ${other.name}`}
+            >
+              <Ionicons name="chatbubble-outline" size={18} color={colors.gold} />
+            </Pressable>
+          ) : null}
           {otherPhone ? (
             <Pressable
               onPress={() => Linking.openURL(`tel:${otherPhone}`)}
@@ -264,7 +282,13 @@ export function BookingDetailScreen({
       </ScrollView>
 
       <ActionBar
-        actions={booking.available_actions}
+        // "review" is dropped when the host screen has nowhere to send it —
+        // a button that does nothing is worse than no button.
+        actions={
+          onWriteReview
+            ? booking.available_actions
+            : booking.available_actions.filter((a) => a !== 'review')
+        }
         busy={busy}
         onAction={runAction}
         booking={booking}
@@ -343,10 +367,12 @@ function ActionBar({
     );
   }
 
-  // "review" is Module 9's screen; it is surfaced but not yet wired.
-  const usable = actions.filter((a) => a !== 'review');
-  const primary = usable.find((a) => a === 'accept' || a === 'complete');
-  const secondary = usable.filter((a) => a !== primary);
+  // "review" is the primary action once a shoot is done — it is the only thing
+  // left to do on the booking, and the whole platform's trust signal.
+  const primary = actions.find(
+    (a) => a === 'accept' || a === 'complete' || a === 'review',
+  );
+  const secondary = actions.filter((a) => a !== primary);
 
   return (
     <View style={styles.actionBar}>

@@ -16,6 +16,8 @@ import { ErrorState, LoadingState } from '../../../components/feedback/States';
 import { useCurrentUser } from '../../../store/authStore';
 import type { Category, PhotographerSummary } from '../../../types/models';
 import { colors, radius, spacing, typography } from '../../../theme';
+import { useChatUnreadTotal } from '../../chat/hooks/useChat';
+import { NotificationBell } from '../../notifications/components/NotificationBell';
 import { PhotographerCard } from '../components/PhotographerCard';
 import {
   useCategories,
@@ -28,15 +30,27 @@ interface Props {
   onOpenPhotographer: (id: number) => void;
   onOpenCategory: (slug: string) => void;
   onOpenSearch: () => void;
+  /**
+   * Notifications and Messages live in this header rather than in bottom tabs.
+   *
+   * Six bottom tabs is past the point where labels truncate on a small Android
+   * device (the same reason selling sits inside Profile), and both of these are
+   * glanceable badges rather than destinations people navigate to repeatedly.
+   */
+  onOpenNotifications?: () => void;
+  onOpenMessages?: () => void;
 }
 
 export function HomeScreen({
   onOpenPhotographer,
   onOpenCategory,
   onOpenSearch,
+  onOpenNotifications,
+  onOpenMessages,
 }: Props) {
   const user = useCurrentUser();
   const [refreshing, setRefreshing] = useState(false);
+  const chatUnread = useChatUnreadTotal();
 
   const recommendations = useRecommendations({ limit: 50 });
   const categories = useCategories();
@@ -104,6 +118,18 @@ export function HomeScreen({
               {greetingFor(new Date())}, {user?.full_name?.split(' ')[0] ?? 'there'}
             </Text>
             <Text style={styles.headline}>Find your photographer</Text>
+          </View>
+          <View style={styles.headerActions}>
+            {onOpenMessages ? (
+              <NotificationBell
+                onPress={onOpenMessages}
+                icon="chatbubbles-outline"
+                count={chatUnread.data?.unread_total ?? 0}
+              />
+            ) : null}
+            {onOpenNotifications ? (
+              <NotificationBell onPress={onOpenNotifications} />
+            ) : null}
           </View>
         </View>
 
@@ -273,11 +299,14 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   content: { paddingBottom: spacing.huge },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
     paddingBottom: spacing.lg,
   },
-  headerText: { gap: 2 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  headerText: { gap: 2, flex: 1 },
   greeting: { ...typography.caption, color: colors.sub },
   headline: { ...typography.h1, color: colors.text },
   searchBar: {

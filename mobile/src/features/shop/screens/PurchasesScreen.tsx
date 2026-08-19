@@ -34,7 +34,17 @@ import { usePurchases, useRequestDownload } from '../hooks/useShop';
  * Each tap spends one of the buyer's `max_downloads`, so the count is shown
  * before they use one.
  */
-export function PurchasesScreen({ onBack }: { onBack?: () => void }) {
+export function PurchasesScreen({
+  onBack,
+  onWriteReview,
+}: {
+  onBack?: () => void;
+  /**
+   * Module 9. Absent on the photographer's stack, which has no review route —
+   * the row is then simply not offered rather than shown and dead.
+   */
+  onWriteReview?: (item: OrderItem) => void;
+}) {
   const purchases = usePurchases();
   const requestDownload = useRequestDownload();
   const [busyItem, setBusyItem] = useState<number | null>(null);
@@ -111,6 +121,11 @@ export function PurchasesScreen({ onBack }: { onBack?: () => void }) {
               item={item}
               busy={busyItem === item.id}
               onDownload={(file) => confirmDownload(item, file)}
+              onWriteReview={
+                onWriteReview && !item.has_review
+                  ? () => onWriteReview(item)
+                  : undefined
+              }
             />
           )}
           ListEmptyComponent={
@@ -137,10 +152,12 @@ function PurchaseCard({
   item,
   busy,
   onDownload,
+  onWriteReview,
 }: {
   item: OrderItem;
   busy: boolean;
   onDownload: (file: ProductFile) => void;
+  onWriteReview?: () => void;
 }) {
   const exhausted = item.downloads_remaining <= 0;
 
@@ -198,6 +215,24 @@ function PurchaseCard({
           </Text>
         ) : null}
       </View>
+
+      {onWriteReview ? (
+        <Pressable
+          onPress={onWriteReview}
+          style={styles.reviewRow}
+          accessibilityRole="button"
+          accessibilityLabel={`Review ${item.product_title}`}
+        >
+          <Ionicons name="star-outline" size={15} color={colors.gold} />
+          <Text style={styles.reviewText}>Rate this pack</Text>
+          <Ionicons name="chevron-forward" size={14} color={colors.dim} />
+        </Pressable>
+      ) : item.has_review ? (
+        <View style={styles.reviewRow}>
+          <Ionicons name="checkmark-circle-outline" size={15} color={colors.green} />
+          <Text style={styles.reviewedText}>You reviewed this</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -248,4 +283,15 @@ const styles = StyleSheet.create({
   fileName: { ...typography.caption, color: colors.text, flex: 1 },
   fileSize: { ...typography.tiny, color: colors.dim },
   noFiles: { ...typography.caption, color: colors.dim },
+  reviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  reviewText: { ...typography.caption, color: colors.gold, flex: 1 },
+  reviewedText: { ...typography.tiny, color: colors.sub, flex: 1 },
 });

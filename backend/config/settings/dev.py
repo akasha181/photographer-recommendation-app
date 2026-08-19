@@ -5,7 +5,17 @@ from .base import *  # noqa: F401,F403
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
-# Allow any origin while developing against Expo Go on a phone.
+# ═══════════════════════════════════════════════════════════════════════════
+# CORS — wide open, dev only
+#
+# Any origin, so Expo Go on a phone, `expo start --web` on :8081 and a browser
+# on the LAN IP all work without listing each one. django-cors-headers echoes
+# the request's Origin rather than sending `*` because CORS_ALLOW_CREDENTIALS is
+# on, which is what makes credentialled requests legal.
+#
+# `ALLOWED_HOSTS = ["*"]` also satisfies channels' AllowedHostsOriginValidator,
+# so the chat / notification / presence WebSockets accept any origin too.
+# ═══════════════════════════════════════════════════════════════════════════
 CORS_ALLOW_ALL_ORIGINS = True
 
 EMAIL_BACKEND = config(
