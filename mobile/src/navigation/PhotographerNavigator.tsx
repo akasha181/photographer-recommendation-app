@@ -14,6 +14,15 @@ import { WishlistScreen } from '../features/profile/screens/WishlistScreen';
 import { ProductDetailScreen } from '../features/shop/screens/ProductDetailScreen';
 import { PurchasesScreen } from '../features/shop/screens/PurchasesScreen';
 import { SellerProductsScreen } from '../features/shop/screens/SellerProductsScreen';
+import { EditProfileScreen } from '../features/photographer/screens/EditProfileScreen';
+import { MyCalendarScreen } from '../features/photographer/screens/MyCalendarScreen';
+import { MyServicesScreen } from '../features/photographer/screens/MyServicesScreen';
+import { ReceivedReviewsScreen } from '../features/reviews/screens/ReceivedReviewsScreen';
+import { NotificationsScreen } from '../features/notifications/screens/NotificationsScreen';
+import { NotificationSettingsScreen } from '../features/notifications/screens/NotificationSettingsScreen';
+import { ConversationsScreen } from '../features/chat/screens/ConversationsScreen';
+import { NewChatScreen } from '../features/chat/screens/NewChatScreen';
+import { ChatScreen } from '../features/chat/screens/ChatScreen';
 import { colors } from '../theme';
 import { useTabBarOptions } from './tabBarStyle';
 
