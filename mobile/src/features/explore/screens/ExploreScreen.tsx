@@ -49,11 +49,16 @@ export function ExploreScreen({ onOpenPhotographer, initialCategory }: Props) {
 
   const query = usePhotographers(activeFilters);
 
-  // Flatten the paginated pages into one array for the FlatList.
-  const items = useMemo(
-    () => query.data?.pages.flatMap((page) => page.items) ?? [],
-    [query.data],
-  );
+  // Flatten the paginated pages into one array for the FlatList, deduplicating by ID.
+  const items = useMemo(() => {
+    const raw = query.data?.pages.flatMap((page) => page.items) ?? [];
+    const seen = new Set<number>();
+    return raw.filter((item) => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+  }, [query.data]);
   const total = query.data?.pages[0]?.totalItems ?? 0;
 
   const loadMore = useCallback(() => {

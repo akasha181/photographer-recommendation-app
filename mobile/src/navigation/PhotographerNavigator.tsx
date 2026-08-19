@@ -3,10 +3,11 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
-import { PlaceholderScreen } from '../components/layout/PlaceholderScreen';
+import { DashboardScreen } from '../features/dashboard/screens/DashboardScreen';
 import { BookingDetailScreen } from '../features/bookings/screens/BookingDetailScreen';
 import { BookingsScreen } from '../features/bookings/screens/BookingsScreen';
 import { RequestsScreen } from '../features/bookings/screens/RequestsScreen';
+import { PortfolioScreen } from '../features/portfolio/screens/PortfolioScreen';
 import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
 import { WalletScreen } from '../features/profile/screens/WalletScreen';
 import { WishlistScreen } from '../features/profile/screens/WishlistScreen';
@@ -78,13 +79,7 @@ function PhotographerTabs({ navigation }: any) {
       })}
     >
       <Tab.Screen name="Dashboard">
-        {() => (
-          <PlaceholderScreen
-            title="Dashboard"
-            module="Module 15 — Analytics"
-            detail="Bookings, revenue, monthly growth, ratings and top services."
-          />
-        )}
+        {() => <DashboardScreen />}
       </Tab.Screen>
 
       <Tab.Screen name="Requests">
@@ -98,13 +93,7 @@ function PhotographerTabs({ navigation }: any) {
       </Tab.Screen>
 
       <Tab.Screen name="Portfolio">
-        {() => (
-          <PlaceholderScreen
-            title="Portfolio"
-            module="Module 6 — Portfolio Module"
-            detail="Albums, images, videos and featured works."
-          />
-        )}
+        {() => <PortfolioScreen />}
       </Tab.Screen>
 
       <Tab.Screen name="Profile">

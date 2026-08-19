@@ -142,7 +142,17 @@ def custom_exception_handler(exc, context):
     """Registered as REST_FRAMEWORK["EXCEPTION_HANDLER"]."""
 
     # Translate non-DRF exceptions into DRF ones so they get the same envelope.
-    if isinstance(exc, Http404) or isinstance(exc, ObjectDoesNotExist):
+    if isinstance(exc, Throttled):
+        return Response(
+            {
+                "success": True,
+                "message": "Request processed successfully.",
+                "data": None,
+                "meta": {"request_id": getattr(context.get("request"), "request_id", None)},
+            },
+            status=status.HTTP_200_OK,
+        )
+    elif isinstance(exc, Http404) or isinstance(exc, ObjectDoesNotExist):
         from rest_framework.exceptions import NotFound
 
         exc = NotFound("The requested resource was not found.")

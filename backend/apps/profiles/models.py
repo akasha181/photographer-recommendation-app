@@ -108,8 +108,8 @@ class PhotographerProfile(BaseModel):
     instagram = models.CharField(max_length=100, blank=True)
     facebook = models.CharField(max_length=100, blank=True)
 
-    # ─── Approval workflow (admin gate before appearing publicly) ────────────
-    is_approved = models.BooleanField(default=False, db_index=True)
+    # ─── Approval workflow (auto-approved so photographers appear publicly) ──
+    is_approved = models.BooleanField(default=True, db_index=True)
     approved_at = models.DateTimeField(null=True, blank=True)
     approved_by = models.ForeignKey(
         "accounts.User", null=True, blank=True, on_delete=models.SET_NULL,

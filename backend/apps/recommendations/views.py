@@ -37,9 +37,9 @@ class RecommendationView(APIView):
 
     def get(self, request):
         try:
-            limit = min(int(request.query_params.get("limit", 20)), 50)
+            limit = min(int(request.query_params.get("limit", 50)), 200)
         except (TypeError, ValueError):
-            limit = 20
+            limit = 50
 
         max_price = request.query_params.get("max_price")
         try:

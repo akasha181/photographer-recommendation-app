@@ -1307,7 +1307,7 @@ class Command(BaseCommand):
     def _ok(self, label: str, count: int, extra: str = ""):
         suffix = f"  ({extra})" if extra else ""
         self.stdout.write(
-            self.style.SUCCESS(f"  ✓ {label:<26} {count:>6}{suffix}")
+            self.style.SUCCESS(f"  [OK] {label:<26} {count:>6}{suffix}")
         )
 
     def _summary(self):

@@ -38,7 +38,7 @@ export function HomeScreen({
   const user = useCurrentUser();
   const [refreshing, setRefreshing] = useState(false);
 
-  const recommendations = useRecommendations({ city: user?.city, limit: 10 });
+  const recommendations = useRecommendations({ limit: 50 });
   const categories = useCategories();
   const trending = useTrendingPhotographers(user?.city);
   const featured = useFeaturedPhotographers();
@@ -157,9 +157,9 @@ export function HomeScreen({
         ) : null}
 
         <View style={styles.list}>
-          {(feed?.items ?? []).map((photographer) => (
+          {(feed?.items ?? []).map((photographer, index) => (
             <PhotographerCard
-              key={photographer.id}
+              key={`rec-${photographer.id}-${index}`}
               photographer={photographer}
               showReason
               onPress={() => openPhotographer(photographer.id, true)}
@@ -176,7 +176,7 @@ export function HomeScreen({
             <FlatList
               horizontal
               data={trending.data}
-              keyExtractor={(item: PhotographerSummary) => String(item.id)}
+              keyExtractor={(item: PhotographerSummary, index: number) => `trend-${item.id}-${index}`}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.chipRow}
               renderItem={({ item }) => (
@@ -194,9 +194,9 @@ export function HomeScreen({
           <>
             <SectionHeader title="Featured photographers" />
             <View style={styles.list}>
-              {featured.data.slice(0, 5).map((photographer) => (
+              {featured.data.slice(0, 5).map((photographer, index) => (
                 <PhotographerCard
-                  key={photographer.id}
+                  key={`feat-${photographer.id}-${index}`}
                   photographer={photographer}
                   onPress={() => openPhotographer(photographer.id, false)}
                 />

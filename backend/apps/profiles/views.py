@@ -59,7 +59,7 @@ class PhotographerViewSet(
 
     def get_queryset(self):
         return selectors.photographers_for_list().order_by(
-            "-is_featured", "-bayesian_rating", "-completed_bookings"
+            "-avg_rating", "-reviews_count", "-completed_bookings", "-created_at"
         )
 
     def get_serializer_context(self):

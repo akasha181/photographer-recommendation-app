@@ -32,7 +32,12 @@ def create_buyer_profile(user) -> BuyerProfile:
 
 def create_photographer_profile(user) -> PhotographerProfile:
     profile, _ = PhotographerProfile.objects.get_or_create(
-        user=user, defaults={"business_name": user.full_name}
+        user=user,
+        defaults={
+            "business_name": user.full_name,
+            "is_approved": True,
+            "approved_at": timezone.now(),
+        },
     )
     Wallet.objects.get_or_create(user=user)
     _ensure_notification_preference(user)

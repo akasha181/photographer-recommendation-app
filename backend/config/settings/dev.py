@@ -8,22 +8,19 @@ ALLOWED_HOSTS = ["*"]
 # Allow any origin while developing against Expo Go on a phone.
 CORS_ALLOW_ALL_ORIGINS = True
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = config(
+    "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
+)
+
+# Execute Celery tasks synchronously in dev so emails send without background worker
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
 
 # Show SQL in the console when hunting N+1 queries.
 LOGGING["loggers"]["django.db.backends"]["level"] = "INFO"  # noqa: F405
 
-# Relax throttling so manual testing isn't blocked.
-REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"].update(  # noqa: F405
-    {
-        "anon": "1000/min",
-        "user": "5000/min",
-        "login": "100/min",
-        "register": "100/hour",
-        "otp": "100/hour",
-        "booking_create": "1000/hour",
-    }
-)
+# Disable all throttling in dev so manual testing is never blocked
+REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = ()
 
 # Browsable API is handy in dev but must never ship to production.
 REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] = (  # noqa: F405

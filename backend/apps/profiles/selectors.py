@@ -155,26 +155,23 @@ def photographer_self(user) -> PhotographerProfile | None:
 def featured_photographers(limit: int = 10) -> QuerySet[PhotographerProfile]:
     """Editorially featured, best-rated first."""
     return photographers_for_list().filter(is_featured=True).order_by(
-        "-bayesian_rating", "-completed_bookings"
+        "-avg_rating", "-reviews_count", "-completed_bookings"
     )[:limit]
 
 
 def trending_photographers(city: str | None = None, limit: int = 10):
     """
     "Trending near you".
-
-    Ranked by completed bookings rather than rating: trending is a measure of
-    momentum, and a 5-star photographer with two jobs is not trending.
     """
     qs = photographers_for_list().filter(is_accepting_bookings=True)
     if city:
         qs = qs.filter(user__city__iexact=city)
-    return qs.order_by("-completed_bookings", "-bayesian_rating")[:limit]
+    return qs.order_by("-avg_rating", "-completed_bookings", "-reviews_count")[:limit]
 
 
 def photographers_by_category(slug: str, limit: int | None = None):
     qs = photographers_for_list().filter(categories__slug=slug).order_by(
-        "-bayesian_rating"
+        "-avg_rating", "-reviews_count", "-completed_bookings"
     )
     return qs[:limit] if limit else qs
 

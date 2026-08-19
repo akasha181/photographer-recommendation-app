@@ -230,22 +230,8 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ("apps.core.renderers.EnvelopeJSONRenderer",),
     "EXCEPTION_HANDLER": "apps.core.exceptions.custom_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_THROTTLE_CLASSES": (
-        "rest_framework.throttling.AnonRateThrottle",
-        "rest_framework.throttling.UserRateThrottle",
-        "rest_framework.throttling.ScopedRateThrottle",
-    ),
-    "DEFAULT_THROTTLE_RATES": {
-        "anon": "60/min",
-        "user": "300/min",
-        "login": "5/min",
-        "register": "3/hour",
-        "otp": "3/hour",
-        "password_reset": "3/hour",
-        "search": "60/min",
-        "chat_send": "30/min",
-        "booking_create": "10/hour",
-    },
+    "DEFAULT_THROTTLE_CLASSES": (),
+    "DEFAULT_THROTTLE_RATES": {},
     "DATETIME_FORMAT": "%Y-%m-%dT%H:%M:%S%z",
     "COERCE_DECIMAL_TO_STRING": True,  # money as string — avoids JS float errors
 }
@@ -349,13 +335,16 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
-# ═══════════════════════════════════════════════════════════════════════════
-# EMAIL
-# ═══════════════════════════════════════════════════════════════════════════
 EMAIL_BACKEND = config(
-    "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
+    "EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend"
 )
-DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@snapsphere.pk")
+EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+EMAIL_USE_SSL = config("EMAIL_USE_SSL", default=False, cast=bool)
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="SnapSphere <noreply@snapsphere.pk>")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # BUSINESS RULES

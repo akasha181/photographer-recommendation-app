@@ -173,6 +173,7 @@ export function ShopScreen({
         />
       ) : (
         <FlatList
+          key="2-cols"
           data={rows}
           keyExtractor={(item) => String(item.id)}
           numColumns={2}

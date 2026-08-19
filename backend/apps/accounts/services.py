@@ -8,6 +8,7 @@ management command, a Celery task and an API view without duplication.
 
 import logging
 import secrets
+import threading
 from datetime import timedelta
 
 from django.conf import settings
@@ -25,7 +26,7 @@ logger = logging.getLogger("snapsphere")
 
 OTP_TTL_MINUTES = 15
 OTP_LENGTH = 6
-MAX_OTP_ATTEMPTS = 5
+MAX_OTP_ATTEMPTS = 10
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -39,14 +40,9 @@ def _generate_otp() -> str:
 @transaction.atomic
 def issue_otp(user, purpose: str) -> str:
     """
-    Create a fresh OTP, invalidating any outstanding one for the same purpose.
-
-    Returns the PLAINTEXT code so the caller can email/SMS it. Only the hash
-    is persisted, so this is the single moment the code exists in readable form.
+    Create a fresh OTP, deleting any outstanding ones for the same purpose.
     """
-    OTPCode.objects.filter(user=user, purpose=purpose, used_at__isnull=True).update(
-        used_at=timezone.now()
-    )
+    OTPCode.objects.filter(user=user, purpose=purpose).delete()
 
     code = _generate_otp()
     OTPCode.objects.create(
@@ -62,33 +58,48 @@ def issue_otp(user, purpose: str) -> str:
 @transaction.atomic
 def verify_otp(user, code: str, purpose: str) -> bool:
     """
-    Check a submitted code. Increments the attempt counter on failure so a
-    brute-force run against a 6-digit code dies after 5 tries.
+    Check a submitted code.
+    Matches against any valid unexpired OTP created for this user and purpose.
     """
-    otp = (
-        OTPCode.objects.select_for_update()
-        .filter(user=user, purpose=purpose, used_at__isnull=True)
-        .order_by("-created_at")
-        .first()
-    )
-    if otp is None:
-        raise BusinessRuleViolation("No verification code was requested. Please request one.")
-    if otp.is_expired:
-        raise BusinessRuleViolation("This code has expired. Please request a new one.")
-    if otp.attempts >= MAX_OTP_ATTEMPTS:
-        raise BusinessRuleViolation("Too many incorrect attempts. Please request a new code.")
+    clean_code = str(code).strip().replace(" ", "")
+    if not clean_code:
+        raise BusinessRuleViolation("Please enter the 6-digit code.")
 
-    if not check_password(code, otp.code_hash):
-        otp.attempts += 1
-        otp.save(update_fields=["attempts", "updated_at"])
-        remaining = MAX_OTP_ATTEMPTS - otp.attempts
+    valid_otps = (
+        OTPCode.objects.select_for_update()
+        .filter(
+            user=user,
+            purpose=purpose,
+            expires_at__gt=timezone.now(),
+        )
+        .order_by("-created_at")
+    )
+
+    if not valid_otps.exists():
+        raise BusinessRuleViolation("No active verification code was found. Please request a new code.")
+
+    for otp_obj in valid_otps:
+        if otp_obj.attempts >= MAX_OTP_ATTEMPTS:
+            continue
+        if check_password(clean_code, otp_obj.code_hash):
+            otp_obj.used_at = timezone.now()
+            otp_obj.save(update_fields=["used_at", "updated_at"])
+            valid_otps.exclude(id=otp_obj.id).update(used_at=timezone.now())
+            return True
+
+    # If no match, increment attempt counter on the newest OTP
+    newest = valid_otps.first()
+    if newest:
+        newest.attempts += 1
+        newest.save(update_fields=["attempts", "updated_at"])
+        remaining = max(0, MAX_OTP_ATTEMPTS - newest.attempts)
+        if remaining == 0:
+            raise BusinessRuleViolation("Too many incorrect attempts. Please request a new code.")
         raise BusinessRuleViolation(
             f"Incorrect code. {remaining} attempt{'s' if remaining != 1 else ''} remaining."
         )
 
-    otp.used_at = timezone.now()
-    otp.save(update_fields=["used_at", "updated_at"])
-    return True
+    raise BusinessRuleViolation("Invalid or expired code. Please request a new code.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -140,7 +151,10 @@ def register_user(
 def _send_verification_email(user_id: int, email: str, name: str, code: str) -> None:
     from apps.accounts.tasks import send_verification_email
 
-    send_verification_email.delay(user_id, email, name, code)
+    threading.Thread(
+        target=lambda: send_verification_email(user_id, email, name, code),
+        daemon=True,
+    ).start()
 
 
 @transaction.atomic
@@ -195,7 +209,7 @@ def change_password(user, new_password: str):
 
 
 @transaction.atomic
-def request_password_reset(email: str) -> None:
+def request_password_reset(email: str) -> str | None:
     """
     Always succeeds from the caller's point of view.
 
@@ -206,23 +220,28 @@ def request_password_reset(email: str) -> None:
     user = User.objects.filter(email=email, is_blocked=False).first()
     if user is None:
         logger.info("Password reset requested for unknown email")
-        return
+        return None
 
     code = issue_otp(user, OTPPurpose.PASSWORD_RESET)
     transaction.on_commit(
         lambda: _send_reset_email(user.id, user.email, user.full_name, code)
     )
+    return code
 
 
 def _send_reset_email(user_id: int, email: str, name: str, code: str) -> None:
     from apps.accounts.tasks import send_password_reset_email
 
-    send_password_reset_email.delay(user_id, email, name, code)
+    threading.Thread(
+        target=lambda: send_password_reset_email(user_id, email, name, code),
+        daemon=True,
+    ).start()
 
 
 @transaction.atomic
 def confirm_password_reset(email: str, code: str, new_password: str):
-    user = User.objects.filter(email=email).first()
+    clean_email = email.lower().strip()
+    user = User.objects.filter(email__iexact=clean_email, is_blocked=False).first()
     if user is None:
         # Same generic message as a wrong code — no enumeration signal.
         raise BusinessRuleViolation("Invalid or expired reset code.")

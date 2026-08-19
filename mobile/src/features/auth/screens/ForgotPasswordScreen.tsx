@@ -40,12 +40,11 @@ export function ForgotPasswordScreen({ onGoLogin }: Props) {
     setSubmitting(true);
     setFormError(null);
     try {
-      await api.post(ENDPOINTS.auth.passwordReset, { email: values.email });
-      setEmail(values.email);
-      confirmForm.setValue('email', values.email);
-      // The backend responds identically whether or not the account exists —
-      // so we advance to the code screen either way. Doing anything else
-      // would leak which email addresses are registered.
+      const cleanEmail = values.email.trim().toLowerCase();
+      await api.post(ENDPOINTS.auth.passwordReset, { email: cleanEmail });
+      setEmail(cleanEmail);
+      confirmForm.setValue('email', cleanEmail);
+      confirmForm.setValue('code', '');
       setStage('confirm');
     } catch (err) {
       setFormError(
@@ -60,7 +59,13 @@ export function ForgotPasswordScreen({ onGoLogin }: Props) {
     setSubmitting(true);
     setFormError(null);
     try {
-      await api.post(ENDPOINTS.auth.passwordResetConfirm, values);
+      const payload = {
+        email: (values.email || email).trim().toLowerCase(),
+        code: String(values.code).trim(),
+        new_password: values.new_password,
+        new_password_confirm: values.new_password_confirm,
+      };
+      await api.post(ENDPOINTS.auth.passwordResetConfirm, payload);
       setStage('done');
     } catch (err) {
       if (err instanceof ApiError) {
@@ -197,6 +202,26 @@ export function ForgotPasswordScreen({ onGoLogin }: Props) {
             loading={submitting}
             size="lg"
           />
+
+          <View style={styles.confirmActionsRow}>
+            <TouchableOpacity
+              onPress={() => requestCode({ email })}
+              disabled={submitting}
+              style={styles.actionBtn}
+            >
+              <Text style={styles.actionBtnText}>🔄 Resend code</Text>
+            </TouchableOpacity>
+            <Text style={styles.dividerDot}>•</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setStage('request');
+                setFormError(null);
+              }}
+              style={styles.actionBtn}
+            >
+              <Text style={styles.actionBtnText}>✏️ Change email</Text>
+            </TouchableOpacity>
+          </View>
         </>
       )}
 
@@ -232,4 +257,23 @@ const styles = StyleSheet.create({
   bannerText: { ...typography.caption, color: colors.red },
   back: { alignSelf: 'center', marginTop: spacing.xxl, padding: spacing.sm },
   backText: { ...typography.caption, color: colors.gold, fontWeight: '600' },
+  confirmActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  actionBtn: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  actionBtnText: {
+    ...typography.caption,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  dividerDot: {
+    color: colors.dim,
+  },
 });

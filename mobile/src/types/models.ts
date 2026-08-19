@@ -605,3 +605,36 @@ export interface Message {
   /** Client-side only: an optimistic bubble not yet acknowledged. */
   pending?: boolean;
 }
+
+export interface PortfolioAlbum {
+  id: number;
+  title: string;
+  description: string;
+  cover_image: string | null;
+  shoot_date: string | null;
+  location: string;
+  client_name: string;
+  is_public: boolean;
+  is_featured: boolean;
+  image_count: number;
+  view_count: number;
+  category: CategoryMini | null;
+  created_at: string;
+}
+
+export interface PortfolioImage {
+  id: number;
+  caption: string;
+  alt_text: string;
+  image: string;
+  thumbnail: string | null;
+  image_large: string | null;
+  width: number;
+  height: number;
+  is_featured: boolean;
+  view_count: number;
+  like_count: number;
+  album_id: number | null;
+  category: CategoryMini | null;
+  created_at: string;
+}

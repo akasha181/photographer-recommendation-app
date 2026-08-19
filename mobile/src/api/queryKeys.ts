@@ -69,4 +69,11 @@ export const qk = {
     day: (photographerId: number | string, date: string, duration: number) =>
       ['availability', 'day', String(photographerId), date, duration] as const,
   },
+
+  portfolio: {
+    all: ['portfolio'] as const,
+    albums: (page: number) => ['portfolio', 'albums', page] as const,
+    images: (albumId?: number, page: number = 1) =>
+      ['portfolio', 'images', albumId ?? 'all', page] as const,
+  },
 } as const;

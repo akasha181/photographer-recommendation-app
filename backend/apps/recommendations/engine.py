@@ -197,13 +197,13 @@ def _content_scores(photographers: list) -> list[float]:
     """Score with the trained ranker, or fall back to a rating proxy."""
     ranker = _load_ranker()
     if ranker is None:
-        return [float(p.bayesian_rating or 0) / 5.0 for p in photographers]
+        return [float(p.avg_rating or 0) / 5.0 for p in photographers]
     try:
         frame = build_feature_frame(photographers)
         return [float(s) for s in ranker.predict(frame)]
     except Exception as exc:  # noqa: BLE001
         logger.exception("Ranker scoring failed, using rating proxy: %s", exc)
-        return [float(p.bayesian_rating or 0) / 5.0 for p in photographers]
+        return [float(p.avg_rating or 0) / 5.0 for p in photographers]
 
 
 def _collab_scores(buyer_id: int | None, photographers: list) -> list[float]:
@@ -264,14 +264,7 @@ def _collab_scores(buyer_id: int | None, photographers: list) -> list[float]:
 def _business_score(photographer) -> float:
     """
     Hand-tuned adjustments the models cannot express.
-
-    The new-photographer floor is the important one: without it, ranking is
-    purely a function of accumulated history, so a photographer with no
-    bookings can never get their first — and the marketplace slowly starves
-    its own supply side.
     """
-    from django.utils import timezone
-
     score = 0.5
 
     if photographer.is_accepting_bookings:
@@ -280,10 +273,6 @@ def _business_score(photographer) -> float:
         score += 0.15
     if photographer.is_featured:
         score += 0.15
-
-    age_days = (timezone.now() - photographer.created_at).days
-    if age_days <= 30 and photographer.completed_bookings == 0:
-        score += 0.25  # exploration boost
 
     if photographer.total_bookings > 5:
         cancel_rate = photographer.cancelled_bookings / photographer.total_bookings
@@ -423,8 +412,16 @@ def recommend(
         photographer.reason = _reason(photographer, c_score, cf_score, strategy)
         scored.append(photographer)
 
-    scored.sort(key=lambda p: -p.score)
-    top = _apply_exploration_quota(scored, limit)
+    # Rank primarily by rating (5 -> 4 -> 3 -> 2 -> 1 -> 0), then reviews count, then model score
+    scored.sort(
+        key=lambda p: (
+            float(p.avg_rating or 0),
+            float(p.reviews_count or 0),
+            p.score,
+        ),
+        reverse=True,
+    )
+    top = scored[:limit]
 
     result = {
         "photographers": top,
@@ -495,10 +492,10 @@ def _relaxed_fallback(category, city, max_price, limit) -> dict:
         if params["max_price"]:
             qs = qs.filter(base_price__lte=params["max_price"])
 
-        rows = list(qs.distinct().order_by("-bayesian_rating")[:limit])
+        rows = list(qs.distinct().order_by("-avg_rating", "-reviews_count")[:limit])
         if rows:
             for p in rows:
-                p.score = round(float(p.bayesian_rating or 0) / 5.0, 4)
+                p.score = round(float(p.avg_rating or 0) / 5.0, 4)
                 p.content_score = p.score
                 p.collab_score = 0.0
                 p.business_score = _business_score(p)

@@ -109,6 +109,7 @@ export function WishlistScreen({
         />
       ) : (
         <FlatList
+          key="2-cols"
           data={wishlist.data?.products ?? []}
           keyExtractor={(row) => String(row.id)}
           numColumns={2}
