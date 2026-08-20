@@ -28,14 +28,12 @@ from apps.core.utils import upload_to
 
 
 class ProductType(models.TextChoices):
-    LIGHTROOM_PRESET = "LIGHTROOM_PRESET", "Lightroom Preset"
-    PHOTOSHOP_TEMPLATE = "PHOTOSHOP_TEMPLATE", "Photoshop Template"
-    ALBUM_TEMPLATE = "ALBUM_TEMPLATE", "Album Template"
-    WEDDING_LUT = "WEDDING_LUT", "Wedding LUT"
-    VIDEO_EFFECT = "VIDEO_EFFECT", "Video Effect"
-    STOCK_PHOTO = "STOCK_PHOTO", "Stock Photo"
-    OVERLAY = "OVERLAY", "Overlay Pack"
-    OTHER = "OTHER", "Other"
+    CAMERA_ACCESSORY = "CAMERA_ACCESSORY", "Camera Accessories"
+    MOBILE_ACCESSORY = "MOBILE_ACCESSORY", "Mobile Accessories"
+    LENS = "LENS", "Camera Lenses"
+    LIGHTING_AUDIO = "LIGHTING_AUDIO", "Lighting & Mics"
+    TRIPOD_GIMBAL = "TRIPOD_GIMBAL", "Gimbals & Tripods"
+    OTHER = "OTHER", "Other Gear"
 
 
 class LicenseType(models.TextChoices):

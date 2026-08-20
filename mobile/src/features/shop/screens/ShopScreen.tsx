@@ -85,7 +85,7 @@ export function ShopScreen({
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Shop</Text>
-          <Text style={styles.subtitle}>Presets, LUTs and templates</Text>
+          <Text style={styles.subtitle}>Camera Gear, Mobile Accessories & Presets</Text>
         </View>
 
         <Pressable
@@ -282,7 +282,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     marginHorizontal: spacing.xl,
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
     paddingHorizontal: spacing.md,
     height: 44,
     borderRadius: radius.md,
@@ -290,15 +291,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  searchInput: { flex: 1, ...typography.body, color: colors.text },
-  chipsWrap: { flexGrow: 0, marginTop: spacing.md },
-  chips: { paddingHorizontal: spacing.xl, gap: spacing.sm },
+  chipsWrap: {
+    height: 44,
+    marginVertical: 3,
+    flexGrow: 0,
+  },
+  chips: {
+    paddingHorizontal: spacing.xl,
+    alignItems: 'center',
+    gap: spacing.sm,
+    height: 44,
+  },
   chip: {
+    height: 34,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.xs + 2,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md + 2,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,
@@ -308,6 +318,6 @@ const styles = StyleSheet.create({
   chipText: { ...typography.caption, color: colors.sub, fontWeight: '600' },
   chipTextActive: { color: colors.bg },
   column: { gap: spacing.md },
-  list: { padding: spacing.xl, paddingTop: spacing.lg },
+  list: { padding: spacing.xl, paddingTop: spacing.sm },
   listEmpty: { flexGrow: 1 },
 });

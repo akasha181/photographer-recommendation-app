@@ -7,13 +7,12 @@ import { colors, radius, typography } from '../../../theme';
 import { avatarColor } from '../../../utils/format';
 
 const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  LIGHTROOM_PRESET: 'color-filter-outline',
-  PHOTOSHOP_TEMPLATE: 'layers-outline',
-  ALBUM_TEMPLATE: 'book-outline',
-  WEDDING_LUT: 'color-palette-outline',
-  VIDEO_EFFECT: 'film-outline',
-  STOCK_PHOTO: 'image-outline',
-  OVERLAY: 'sparkles-outline',
+  CAMERA_ACCESSORY: 'camera-outline',
+  MOBILE_ACCESSORY: 'phone-portrait-outline',
+  LENS: 'aperture-outline',
+  LIGHTING_AUDIO: 'flashlight-outline',
+  TRIPOD_GIMBAL: 'videocam-outline',
+  OTHER: 'hardware-chip-outline',
 };
 
 /**
