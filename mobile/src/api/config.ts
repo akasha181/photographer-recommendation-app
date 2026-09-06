@@ -18,7 +18,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 /** Set this to your machine's LAN IP to test on a real phone. */
-const DEV_LAN_IP = '192.168.18.134';
+const DEV_LAN_IP = '192.168.18.145';
 
 const PORT = 8000;
 

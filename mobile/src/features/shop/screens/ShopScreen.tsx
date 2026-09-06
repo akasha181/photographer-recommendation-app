@@ -291,6 +291,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  searchInput: {
+    flex: 1,
+    color: colors.text,
+    ...typography.body,
+    paddingVertical: 0,
+  },
   chipsWrap: {
     height: 44,
     marginVertical: 3,

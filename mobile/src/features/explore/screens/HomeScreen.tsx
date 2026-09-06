@@ -341,6 +341,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: radius.sm,
   },
+  badgeText: { ...typography.tiny, color: colors.bg, fontWeight: '700' },
   chipRow: {
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xs,

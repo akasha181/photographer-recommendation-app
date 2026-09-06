@@ -261,9 +261,11 @@ def _collab_scores(buyer_id: int | None, photographers: list) -> list[float]:
         return zeros
 
 
-def _business_score(photographer) -> float:
+def _business_score(photographer, max_price: float | None = None) -> float:
     """
-    Hand-tuned adjustments the models cannot express.
+    Hand-tuned adjustments balancing the marketplace for both parties:
+    1. Buyers: Value-for-money, reliability, verified trust, fast replies.
+    2. Photographers: Growth boosts for new, hardworking talent (meritocracy).
     """
     score = 0.5
 
@@ -274,10 +276,30 @@ def _business_score(photographer) -> float:
     if photographer.is_featured:
         score += 0.15
 
+    # ── Protect Buyers: Penalize high cancellation rates ───────────────
     if photographer.total_bookings > 5:
         cancel_rate = photographer.cancelled_bookings / photographer.total_bookings
         if cancel_rate > 0.3:
             score -= 0.3
+
+    # ── Benefit Buyers: Value-for-money reward ─────────────────────────
+    # Rewards photographers who provide excellent ratings at accessible rates
+    price = float(photographer.base_price or 0)
+    rating = float(photographer.avg_rating or 0)
+    if rating >= 4.2 and 0 < price <= 35000:
+        score += 0.12
+    elif max_price and 0 < price <= max_price * 0.8:
+        # Well within buyer's stated budget ceiling
+        score += 0.08
+
+    # ── Benefit Photographers: Rising Star Growth Boost ────────────────
+    # Helps hardworking newcomers get their first clients and grow on merit
+    completed = photographer.completed_bookings or 0
+    hours = float(photographer.avg_response_time_hours or 24)
+    zero_cancels = (photographer.cancelled_bookings or 0) == 0
+
+    if completed <= 5 and hours <= 3.0 and zero_cancels:
+        score += 0.15
 
     return max(min(score, 1.0), 0.0)
 
@@ -311,10 +333,18 @@ def _reason(photographer, content: float, collab: float, strategy: str) -> str:
     elif hours <= 6:
         parts.append(f"replies in ~{int(hours)}h")
 
+    # ── Dual Benefit Badges: Value for Buyer & Growth for Photographer ─
+    completed = photographer.completed_bookings or 0
+    price = float(photographer.base_price or 0)
+    rating = float(photographer.avg_rating or 0)
+
+    if strategy == "EXPLORATION" or (completed <= 5 and hours <= 3.0 and (photographer.cancelled_bookings or 0) == 0):
+        parts.append("Rising Star · fast responder")
+    elif rating >= 4.2 and 0 < price <= 35000:
+        parts.append("Great value pricing")
+
     if collab > 0.5:
         parts.append("popular with buyers like you")
-    if strategy == "EXPLORATION":
-        parts.append("new on SnapSphere")
     if photographer.completed_bookings > 40:
         parts.append(f"{photographer.completed_bookings} shoots completed")
 
@@ -386,7 +416,7 @@ def recommend(
 
     scored = []
     for photographer, c_score, cf_score in zip(candidates, content, collab):
-        business = _business_score(photographer)
+        business = _business_score(photographer, max_price=max_price)
         final = w_content * c_score + w_collab * cf_score + w_business * business
 
         from django.utils import timezone
@@ -412,16 +442,15 @@ def recommend(
         photographer.reason = _reason(photographer, c_score, cf_score, strategy)
         scored.append(photographer)
 
-    # Rank primarily by rating (5 -> 4 -> 3 -> 2 -> 1 -> 0), then reviews count, then model score
-    scored.sort(
-        key=lambda p: (
-            float(p.avg_rating or 0),
-            float(p.reviews_count or 0),
-            p.score,
-        ),
-        reverse=True,
-    )
-    top = scored[:limit]
+    # 1. Sort by engine score first
+    scored.sort(key=lambda p: -p.score)
+
+    # 2. Guarantee exploration quota for new talent (photographer growth)
+    top = _apply_exploration_quota(scored, limit)
+
+    # 3. Format for display (unpersonalised descends by displayed rating for "Top rated" heading;
+    #    personalised keeps engine score order for "Picked for you")
+    top = _order_for_display(top, personalised=has_collab)
 
     result = {
         "photographers": top,
