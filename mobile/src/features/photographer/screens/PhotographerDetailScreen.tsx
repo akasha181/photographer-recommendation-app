@@ -19,6 +19,7 @@ import type { Service } from '../../../types/models';
 import { formatPKR, formatRating, timeAgo } from '../../../utils/format';
 import { colors, radius, spacing, typography } from '../../../theme';
 import { usePhotographerDetail } from '../../explore/hooks/usePhotographers';
+import { WriteReviewScreen } from '../../reviews/screens/WriteReviewScreen';
 
 interface Props {
   photographerId: number;
@@ -37,8 +38,27 @@ export function PhotographerDetailScreen({
   onMessage,
 }: Props) {
   const { width } = useWindowDimensions();
+  const [writingReview, setWritingReview] = React.useState(false);
   const { data, isLoading, isError, error, refetch } =
     usePhotographerDetail(photographerId);
+
+  if (writingReview && data) {
+    return (
+      <WriteReviewScreen
+        target={{
+          kind: 'photographer',
+          photographerId: data.id,
+          subject: data.display_name,
+          detail: `Rate & review ${data.display_name}`,
+        }}
+        onBack={() => setWritingReview(false)}
+        onDone={() => {
+          setWritingReview(false);
+          refetch();
+        }}
+      />
+    );
+  }
 
   if (isLoading) return <Shell onBack={onBack}><LoadingState /></Shell>;
   if (isError || !data) {
@@ -176,49 +196,77 @@ export function PhotographerDetailScreen({
         ) : null}
 
         {/* ─── Reviews ─────────────────────────────────────────────────── */}
-        {data.recent_reviews && data.recent_reviews.length > 0 ? (
-          <Section title="Recent reviews">
-            {data.recent_reviews.map((review) => (
-              <View key={review.id} style={styles.review}>
-                <View style={styles.reviewHeader}>
-                  <Avatar name={review.buyer_name} uri={review.buyer_avatar} size={32} />
-                  <View style={styles.reviewMeta}>
-                    <Text style={styles.reviewer}>{review.buyer_name}</Text>
-                    <Text style={styles.reviewDate}>{timeAgo(review.created_at)}</Text>
+        <Section
+          title={data.reviews_count > 0 ? `Reviews (${data.reviews_count})` : 'Reviews'}
+          action={
+            <Pressable
+              onPress={() => setWritingReview(true)}
+              style={styles.rateButton}
+              accessibilityRole="button"
+              accessibilityLabel="Rate and review"
+            >
+              <Ionicons name="star" size={13} color={colors.gold} />
+              <Text style={styles.rateButtonText}>Rate & Review</Text>
+            </Pressable>
+          }
+        >
+          {data.recent_reviews && data.recent_reviews.length > 0 ? (
+            <>
+              {data.recent_reviews.map((review) => (
+                <View key={review.id} style={styles.review}>
+                  <View style={styles.reviewHeader}>
+                    <Avatar name={review.buyer_name} uri={review.buyer_avatar} size={32} />
+                    <View style={styles.reviewMeta}>
+                      <Text style={styles.reviewer}>{review.buyer_name}</Text>
+                      <Text style={styles.reviewDate}>{timeAgo(review.created_at)}</Text>
+                    </View>
+                    <Stars rating={review.rating} showNumber={false} size={11} />
                   </View>
-                  <Stars rating={review.rating} showNumber={false} size={11} />
+
+                  {review.title ? (
+                    <Text style={styles.reviewTitle}>{review.title}</Text>
+                  ) : null}
+                  <Text style={styles.reviewBody}>{review.comment}</Text>
+
+                  {review.reply ? (
+                    <View style={styles.reply}>
+                      <Text style={styles.replyLabel}>
+                        Reply from {data.display_name}
+                      </Text>
+                      <Text style={styles.replyBody}>{review.reply.comment}</Text>
+                    </View>
+                  ) : null}
                 </View>
+              ))}
 
-                {review.title ? (
-                  <Text style={styles.reviewTitle}>{review.title}</Text>
-                ) : null}
-                <Text style={styles.reviewBody}>{review.comment}</Text>
-
-                {review.reply ? (
-                  <View style={styles.reply}>
-                    <Text style={styles.replyLabel}>
-                      Reply from {data.display_name}
-                    </Text>
-                    <Text style={styles.replyBody}>{review.reply.comment}</Text>
-                  </View>
-                ) : null}
-              </View>
-            ))}
-
-            {onOpenReviews && data.reviews_count > 0 ? (
-              <Pressable
-                onPress={() => onOpenReviews(data.display_name)}
-                style={styles.seeAll}
-                accessibilityRole="button"
-              >
-                <Text style={styles.seeAllText}>
-                  See all {data.reviews_count} reviews
-                </Text>
-                <Ionicons name="chevron-forward" size={15} color={colors.gold} />
-              </Pressable>
-            ) : null}
-          </Section>
-        ) : null}
+              {onOpenReviews && data.reviews_count > 0 ? (
+                <Pressable
+                  onPress={() => onOpenReviews(data.display_name)}
+                  style={styles.seeAll}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.seeAllText}>
+                    See all {data.reviews_count} reviews
+                  </Text>
+                  <Ionicons name="chevron-forward" size={15} color={colors.gold} />
+                </Pressable>
+              ) : null}
+            </>
+          ) : (
+            <View style={styles.emptyReviews}>
+              <Ionicons name="star-outline" size={24} color={colors.dim} />
+              <Text style={styles.emptyReviewsText}>
+                No reviews yet. Be the first to share your experience!
+              </Text>
+              <Button
+                label="Write a Review"
+                variant="secondary"
+                size="sm"
+                onPress={() => setWritingReview(true)}
+              />
+            </View>
+          )}
+        </Section>
 
         <View style={styles.bottomSpace} />
       </ScrollView>
@@ -255,10 +303,21 @@ function Shell({ children, onBack }: { children: React.ReactNode; onBack: () => 
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {action}
+      </View>
       {children}
     </View>
   );
@@ -354,7 +413,40 @@ const styles = StyleSheet.create({
   },
   responseText: { ...typography.tiny, color: colors.green, fontWeight: '600' },
   section: { paddingHorizontal: spacing.xl, marginTop: spacing.xxl },
-  sectionTitle: { ...typography.h3, color: colors.text, marginBottom: spacing.md },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  sectionTitle: { ...typography.h3, color: colors.text },
+  rateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.goldDim,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+  },
+  rateButtonText: { ...typography.tiny, color: colors.gold, fontWeight: '700' },
+  emptyReviews: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl,
+    gap: spacing.sm,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.lg,
+  },
+  emptyReviewsText: {
+    ...typography.caption,
+    color: colors.sub,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
   bio: { ...typography.body, color: colors.sub, lineHeight: 22 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   thumb: { borderRadius: radius.sm, backgroundColor: colors.card },

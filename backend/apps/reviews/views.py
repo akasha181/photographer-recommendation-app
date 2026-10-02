@@ -254,9 +254,12 @@ class ReviewViewSet(
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = dict(serializer.validated_data)
-        booking = data.pop("booking")  # resolved to an object by the serializer
+        booking = data.pop("booking", None)
+        photographer = data.pop("photographer_id", None)
 
-        review = services.create_review(booking, request.user, **data)
+        review = services.create_review(
+            booking, request.user, photographer=photographer, **data
+        )
         return Response(
             ReviewSerializer(review, context=self.get_serializer_context()).data,
             status=http.HTTP_201_CREATED,

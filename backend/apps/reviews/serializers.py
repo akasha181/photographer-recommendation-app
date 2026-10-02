@@ -181,7 +181,8 @@ class ReviewSummarySerializer(serializers.Serializer):
 # WRITE
 # ═══════════════════════════════════════════════════════════════════════════
 class ReviewCreateSerializer(serializers.Serializer):
-    booking = serializers.IntegerField()
+    booking = serializers.IntegerField(required=False, allow_null=True)
+    photographer_id = serializers.IntegerField(required=False, allow_null=True)
     rating = serializers.IntegerField(min_value=1, max_value=5)
     title = serializers.CharField(max_length=140, required=False, allow_blank=True)
     comment = serializers.CharField(max_length=3000, required=False, allow_blank=True)
@@ -207,11 +208,9 @@ class ReviewCreateSerializer(serializers.Serializer):
         max_length=5,
     )
 
-    def validate_booking(self, value: int):
-        """
-        Resolve the booking and check eligibility while the field name is still
-        attached, so the app can highlight the right thing.
-        """
+    def validate_booking(self, value):
+        if not value:
+            return None
         from apps.bookings.constants import BookingStatus
         from apps.bookings.models import Booking
 
@@ -221,9 +220,6 @@ class ReviewCreateSerializer(serializers.Serializer):
             .select_related("photographer", "photographer__user", "service")
             .first()
         )
-        # Same 404-shaped answer whether the booking does not exist or belongs
-        # to somebody else: the difference would let a caller enumerate other
-        # people's booking ids.
         if booking is None:
             raise serializers.ValidationError("Booking not found.")
         if booking.status != BookingStatus.COMPLETED:
@@ -234,15 +230,22 @@ class ReviewCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError("You have already reviewed this booking.")
         return booking
 
-    def validate(self, attrs):
-        """
-        A 1- or 2-star rating must say why.
+    def validate_photographer_id(self, value):
+        if not value:
+            return None
+        from apps.profiles.models import PhotographerProfile
 
-        Not paternalism: a bare 1★ moves the photographer's average with no
-        information attached, and it is the one case where the platform has to
-        be able to answer "on what grounds?" if the review is disputed.
-        """
-        if attrs["rating"] <= 2 and not (attrs.get("comment") or "").strip():
+        profile = PhotographerProfile.objects.filter(pk=value).first()
+        if profile is None:
+            raise serializers.ValidationError("Photographer not found.")
+        return profile
+
+    def validate(self, attrs):
+        if not attrs.get("booking") and not attrs.get("photographer_id"):
+            raise serializers.ValidationError(
+                "Either booking or photographer_id is required."
+            )
+        if attrs.get("rating") and attrs["rating"] <= 2 and not (attrs.get("comment") or "").strip():
             raise serializers.ValidationError(
                 {"comment": "Please tell us what went wrong so we can look into it."}
             )

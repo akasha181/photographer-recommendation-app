@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { setSessionExpiredHandler } from '../api/client';
+import { usePresenceTracker } from '../features/chat/hooks/useChat';
 import { useNotificationSocket } from '../features/notifications/hooks/useNotifications';
 import { useAuthStore } from '../store/authStore';
 import { colors, spacing, typography } from '../theme';
@@ -35,13 +36,13 @@ export function RootNavigator() {
 
   /**
    * One notification socket for the whole signed-in app.
-   *
-   * Mounted here rather than on the bell so it survives navigation: a socket
-   * opened by a screen would reconnect every time that screen unmounted, and the
-   * badge would go stale the moment the user left it. The hook is a no-op while
-   * unauthenticated and degrades silently — the badge still polls.
    */
   useNotificationSocket(isAuthenticated && Boolean(user));
+
+  /**
+   * Global presence tracker so user shows online/offline correctly to others.
+   */
+  usePresenceTracker(isAuthenticated && Boolean(user));
 
   useEffect(() => {
     // Wire the axios interceptor's "refresh failed" callback into the store,

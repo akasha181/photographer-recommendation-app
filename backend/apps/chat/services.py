@@ -122,12 +122,11 @@ def _assert_may_initiate(initiator, other_user) -> None:
 
     if initiator.role == UserRole.PHOTOGRAPHER:
         profile = getattr(initiator, "photographer_profile", None)
-        if profile is None or not has_booking_between(other_user, profile):
-            raise BusinessRuleViolation(
-                "You can reply to buyers who contacted you, or message a buyer "
-                "you have a booking with."
-            )
-        return
+        if profile is None:
+            raise BusinessRuleViolation("Photographer profile not found.")
+        if other_user.role == UserRole.BUYER or has_booking_between(other_user, profile):
+            return
+        raise BusinessRuleViolation("You can message buyers on SnapSphere.")
 
     raise BusinessRuleViolation("Administrators do not participate in chats.")
 
@@ -366,6 +365,7 @@ def delete_message(message, user) -> Message:
         Conversation.objects.filter(pk=message.conversation_id).update(
             last_message_text="This message was deleted"
         )
+    _broadcast_delete(message)
     return message
 
 
@@ -489,6 +489,22 @@ def _broadcast_read(conversation, user, up_to: int) -> None:
         )
     except Exception as exc:  # noqa: BLE001
         logger.warning("Read receipt broadcast failed: %s", exc)
+
+
+def _broadcast_delete(message) -> None:
+    from asgiref.sync import async_to_sync
+    from channels.layers import get_channel_layer
+
+    layer = get_channel_layer()
+    if layer is None:
+        return
+    try:
+        async_to_sync(layer.group_send)(
+            f"chat_{message.conversation_id}",
+            {"type": "message.delete", "message_id": message.pk},
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Delete broadcast failed: %s", exc)
 
 
 def _notify_recipients(conversation, message) -> None:

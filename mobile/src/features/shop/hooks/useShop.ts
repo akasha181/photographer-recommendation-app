@@ -24,7 +24,9 @@ import {
   shopApi,
   wishlistApi,
   type ShopFilters,
+  type UpdateAccountPayload,
 } from '../../../api/services/shop.api';
+import { useAuthStore } from '../../../store/authStore';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BROWSE
@@ -166,6 +168,26 @@ export function useSellerSummary() {
   });
 }
 
+export function useCreateSellerProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      title: string;
+      description?: string;
+      price: string | number;
+      compare_at_price?: string | number;
+      product_type?: string;
+      thumbnail?: { uri: string; name: string; type: string };
+    }) => shopApi.createSellerProduct(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: qk.shop.all });
+      queryClient.invalidateQueries({ queryKey: qk.shop.sellerProducts });
+      queryClient.invalidateQueries({ queryKey: qk.shop.sellerSummary });
+    },
+    retry: false,
+  });
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // PROFILE & WALLET
 // ═══════════════════════════════════════════════════════════════════════════
@@ -185,6 +207,31 @@ export function useUpdateProfile() {
       queryClient.setQueryData(qk.profile.me, profile);
       // A photographer pausing bookings changes their public card too.
       queryClient.invalidateQueries({ queryKey: qk.photographers.all });
+    },
+    retry: false,
+  });
+}
+
+export function useUpdateAccount() {
+  const queryClient = useQueryClient();
+  const setUser = useAuthStore((s) => s.setUser);
+  return useMutation({
+    mutationFn: (payload: UpdateAccountPayload) => profileApi.updateAccount(payload),
+    onSuccess: (user) => {
+      setUser(user);
+      queryClient.invalidateQueries({ queryKey: qk.profile.me });
+      queryClient.invalidateQueries({ queryKey: qk.photographers.all });
+    },
+    retry: false,
+  });
+}
+
+export function useDeleteAccount() {
+  const logout = useAuthStore((s) => s.logout);
+  return useMutation({
+    mutationFn: (reason?: string) => profileApi.deleteAccount(reason),
+    onSuccess: async () => {
+      await logout();
     },
     retry: false,
   });

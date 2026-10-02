@@ -308,10 +308,13 @@ class MessageViewSet(MessageResponseMixin, MultiSerializerMixin, GenericViewSet)
             MessageSerializer(message, context=self.get_serializer_context()).data
         )
 
-    @extend_schema(summary="Withdraw your own message", responses={204: None})
+    @extend_schema(summary="Withdraw your own message", responses={200: None})
     def destroy(self, request, pk=None):
         services.delete_message(self._message(pk), request.user)
-        return Response(status=http.HTTP_204_NO_CONTENT)
+        return Response(
+            {"message": "Message deleted", "data": {"deleted": True}},
+            status=http.HTTP_200_OK,
+        )
 
     @extend_schema(summary="Report a message", request=ReportMessageSerializer)
     @action(detail=True, methods=["post"])

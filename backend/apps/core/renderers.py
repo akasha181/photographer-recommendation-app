@@ -27,6 +27,10 @@ class EnvelopeJSONRenderer(JSONRenderer):
         if isinstance(data, dict) and "success" in data and "message" in data:
             return super().render(data, accepted_media_type, renderer_context)
 
+        # 204 NO CONTENT and 205 RESET CONTENT must not have a response body
+        if response is not None and response.status_code in (204, 205):
+            return b""
+
         if response is not None and response.status_code >= 400:
             return super().render(data, accepted_media_type, renderer_context)
 

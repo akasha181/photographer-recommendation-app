@@ -45,16 +45,21 @@ class ChatUserSerializer(serializers.Serializer):
     def get_is_online(self, obj) -> bool:
         """
         Reads a presence map the view loads once per response.
-
-        Falling back to a per-user cache hit would be one Redis round trip per
-        row; `presence_for()` batches the whole list into one.
+        Falls back to Redis cache if context map is not present.
         """
-        presence = self.context.get("presence") or {}
-        return bool(presence.get(obj.id))
+        presence = self.context.get("presence")
+        if presence is not None and obj.id in presence:
+            return bool(presence.get(obj.id))
+        from django.core.cache import cache
+        return bool(cache.get(f"presence:{obj.id}"))
 
     def get_last_seen_at(self, obj):
         presence = getattr(obj, "presence", None)
-        return presence.last_seen_at if presence else None
+        if presence and presence.last_seen_at:
+            return presence.last_seen_at
+        from apps.chat.models import Presence
+        p = Presence.objects.filter(user_id=obj.id).first()
+        return p.last_seen_at if p else None
 
 
 class MessageAttachmentSerializer(serializers.ModelSerializer):

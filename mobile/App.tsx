@@ -1,8 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { LogBox, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+LogBox.ignoreLogs(['Cannot connect to Expo CLI']);
 
 import { ApiError } from './src/api/client';
 import { RootNavigator } from './src/navigation/RootNavigator';

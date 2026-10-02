@@ -141,8 +141,9 @@ api.interceptors.response.use(
 
     // Network failure — no response at all.
     if (!error.response) {
+      const targetUrl = original?.baseURL ? `${original.baseURL}${original?.url ?? ''}` : (original?.url ?? '');
       throw new ApiError(
-        'No internet connection. Please check your network and try again.',
+        `Cannot reach server at ${targetUrl || 'API'}: ${error.message}. Check Wi-Fi & Firewall.`,
         'NETWORK_ERROR',
         0,
       );

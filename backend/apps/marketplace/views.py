@@ -14,15 +14,19 @@ the length of a 500 MB transfer; in development Django serves it directly.
 """
 
 import logging
+import uuid
 from pathlib import Path
 
 from django.conf import settings
 from django.http import FileResponse, HttpResponse
+from django.utils import timezone
+from django.utils.text import slugify
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status as http
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
@@ -30,7 +34,7 @@ from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
 from apps.core.mixins import MessageResponseMixin, MultiSerializerMixin
 from apps.marketplace import selectors, services
 from apps.marketplace.filters import ProductFilterSet
-from apps.marketplace.models import CartItem, DigitalProduct, ProductFile
+from apps.marketplace.models import CartItem, DigitalProduct, ProductFile, ProductType
 from apps.marketplace.serializers import (
     AddToCartSerializer,
     CartSerializer,
@@ -399,20 +403,16 @@ def download_file(request, token: str):
 # ═══════════════════════════════════════════════════════════════════════════
 @extend_schema(tags=["Marketplace"])
 class SellerProductViewSet(MessageResponseMixin, GenericViewSet):
-    """
-    A photographer's own catalogue and sales.
-
-    Read-only for now: uploading products needs private-file handling and an
-    admin moderation gate, which is scoped separately. Sellers can still see
-    what is live and what it earned.
-    """
+    """A photographer's own catalogue, product listing, and sales."""
 
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     serializer_class = SellerProductSerializer
     pagination_class = None
     queryset = DigitalProduct.objects.none()  # schema inference only
     success_messages = {
         "list": "Your products retrieved",
+        "create": "Product listed successfully",
         "summary": "Sales summary retrieved",
     }
 
@@ -429,6 +429,46 @@ class SellerProductViewSet(MessageResponseMixin, GenericViewSet):
             SellerProductSerializer(
                 rows, many=True, context=self.get_serializer_context()
             ).data
+        )
+
+    @extend_schema(summary="List a new product for sale")
+    def create(self, request):
+        profile = self._profile()
+        title = request.data.get("title", "").strip()
+        if not title:
+            raise ValidationError({"title": "Product title is required."})
+
+        price = request.data.get("price")
+        if not price:
+            raise ValidationError({"price": "Price is required."})
+
+        description = request.data.get("description", "").strip()
+        product_type = request.data.get("product_type") or ProductType.OTHER
+        compare_at_price = request.data.get("compare_at_price") or None
+
+        thumbnail = request.FILES.get("thumbnail") or request.data.get("thumbnail")
+
+        # Generate unique slug
+        base_slug = slugify(title) or "product"
+        slug = f"{base_slug}-{uuid.uuid4().hex[:6]}"
+
+        product = DigitalProduct.objects.create(
+            seller=profile,
+            title=title,
+            slug=slug,
+            description=description,
+            product_type=product_type,
+            price=price,
+            compare_at_price=compare_at_price,
+            thumbnail=thumbnail,
+            is_published=True,
+            is_approved=True,
+            published_at=timezone.now(),
+        )
+
+        return Response(
+            SellerProductSerializer(product, context=self.get_serializer_context()).data,
+            status=http.HTTP_201_CREATED,
         )
 
     @extend_schema(summary="Sales and earnings totals", responses=SellerSummarySerializer)

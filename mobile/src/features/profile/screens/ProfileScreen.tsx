@@ -1,13 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import React from 'react';
 import {
   Alert,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ApiError } from '../../../api/client';
 import { ErrorState, LoadingState } from '../../../components/feedback/States';
 import { Avatar } from '../../../components/ui/Avatar';
+import { Button } from '../../../components/ui/Button';
 import { useAuthStore } from '../../../store/authStore';
 import { colors, radius, spacing, typography } from '../../../theme';
 import { formatPKR } from '../../../utils/format';
@@ -26,8 +30,10 @@ import { useChatUnreadTotal } from '../../chat/hooks/useChat';
 import { useUnreadBadge } from '../../notifications/hooks/useNotifications';
 import { usePendingReviews } from '../../reviews/hooks/useReviews';
 import {
+  useDeleteAccount,
   useMyProfile,
   useSellerSummary,
+  useUpdateAccount,
   useUpdateProfile,
   useWallet,
   useWishlist,
@@ -45,6 +51,7 @@ import {
  */
 export function ProfileScreen({
   onOpenWallet,
+  onOpenShop,
   onOpenWishlist,
   onOpenPurchases,
   onOpenBookings,
@@ -57,7 +64,8 @@ export function ProfileScreen({
   onOpenNotifications,
   onOpenNotificationSettings,
 }: {
-  onOpenWallet: () => void;
+  onOpenWallet?: () => void;
+  onOpenShop?: () => void;
   onOpenWishlist: () => void;
   onOpenPurchases: () => void;
   onOpenBookings: () => void;
@@ -79,9 +87,98 @@ export function ProfileScreen({
   const wallet = useWallet();
   const wishlist = useWishlist();
   const updateProfile = useUpdateProfile();
+  const updateAccount = useUpdateAccount();
+  const deleteAccount = useDeleteAccount();
+
+  const [editingAccount, setEditingAccount] = React.useState(false);
+  const [editName, setEditName] = React.useState(user?.full_name ?? '');
+  const [editPhone, setEditPhone] = React.useState(user?.phone ?? '');
+  const [editCity, setEditCity] = React.useState(user?.city ?? '');
+  const [editAvatar, setEditAvatar] = React.useState<ImagePicker.ImagePickerAsset | null>(null);
 
   const isPhotographer = user?.role === 'PHOTOGRAPHER';
   const sellerSummary = useSellerSummary();
+
+  const openEditAccount = () => {
+    setEditName(user?.full_name ?? '');
+    setEditPhone(user?.phone ?? '');
+    setEditCity(user?.city ?? '');
+    setEditAvatar(null);
+    setEditingAccount(true);
+  };
+
+  const pickAvatar = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Permission needed', 'Please allow photo access to choose a profile picture.');
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+    if (!res.canceled && res.assets[0]) {
+      setEditAvatar(res.assets[0]);
+    }
+  };
+
+  const handleSaveAccount = () => {
+    if (!editName.trim() || editName.trim().length < 3) {
+      Alert.alert('Invalid Name', 'Please enter your full name (at least 3 characters).');
+      return;
+    }
+    updateAccount.mutate(
+      {
+        full_name: editName.trim(),
+        phone: editPhone.trim(),
+        city: editCity.trim(),
+        avatar: editAvatar
+          ? {
+              uri: editAvatar.uri,
+              name: editAvatar.fileName ?? 'avatar.jpg',
+              type: editAvatar.mimeType ?? 'image/jpeg',
+            }
+          : undefined,
+      },
+      {
+        onSuccess: () => {
+          setEditingAccount(false);
+          Alert.alert('Saved', 'Your account details have been updated.');
+        },
+        onError: (err) => {
+          Alert.alert('Update Failed', (err as ApiError)?.message ?? 'Could not update profile.');
+        },
+      },
+    );
+  };
+
+  const confirmDeleteAccount = () =>
+    Alert.alert(
+      'Delete Account?',
+      'Are you sure you want to permanently delete your account? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: () => {
+            deleteAccount.mutate(undefined, {
+              onSuccess: () => {
+                Alert.alert('Account Deleted', 'Account successfully deleted.');
+              },
+              onError: (error) => {
+                Alert.alert(
+                  'Could not delete account',
+                  (error as ApiError)?.message ?? 'Please try again later.',
+                );
+              },
+            });
+          },
+        },
+      ],
+    );
 
   // Counters for the rows below. Each is its own cached query, so the same
   // number shown here and on the bell can never disagree.
@@ -161,24 +258,6 @@ export function ProfileScreen({
             </Text>
           </View>
         ) : null}
-
-        {/* ─── Wallet ──────────────────────────────────────────────────── */}
-        <Pressable onPress={onOpenWallet} style={styles.walletCard}>
-          <View style={styles.walletTop}>
-            <Text style={styles.walletLabel}>Wallet balance</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.dim} />
-          </View>
-          <Text style={styles.walletAmount}>
-            {formatPKR(wallet.data?.balance ?? '0')}
-          </Text>
-          {wallet.data?.pending_topups ? (
-            <Text style={styles.walletPending}>
-              {wallet.data.pending_topups} top-up awaiting verification
-            </Text>
-          ) : (
-            <Text style={styles.walletHint}>Tap to add funds or see the ledger</Text>
-          )}
-        </Pressable>
 
         {/* ─── Stats ───────────────────────────────────────────────────── */}
         {buyerProfile ? (
@@ -285,6 +364,9 @@ export function ProfileScreen({
             onPress={onOpenWishlist}
           />
           <Row icon="download-outline" label="Purchases" onPress={onOpenPurchases} />
+          {onOpenShop ? (
+            <Row icon="bag-handle-outline" label="Shop" onPress={onOpenShop} />
+          ) : null}
           {onOpenReviews ? (
             <Row
               icon="star-outline"
@@ -319,6 +401,12 @@ export function ProfileScreen({
         </Section>
 
         <Section title="Account">
+          <Row
+            icon="create-outline"
+            label="Edit account details"
+            value="Edit"
+            onPress={openEditAccount}
+          />
           <Row icon="person-outline" label={user?.full_name ?? 'Profile'} muted />
           <Row icon="call-outline" label={user?.phone || 'No phone added'} muted />
           <Row icon="location-outline" label={user?.city || 'No city set'} muted />
@@ -344,8 +432,88 @@ export function ProfileScreen({
           <Text style={styles.logoutText}>Log out</Text>
         </Pressable>
 
+        <Pressable onPress={confirmDeleteAccount} style={styles.deleteBtn}>
+          <Ionicons name="trash-outline" size={18} color={colors.red} />
+          <Text style={styles.deleteBtnText}>Delete account</Text>
+        </Pressable>
+
         <Text style={styles.version}>SnapSphere · v1.0.0</Text>
       </ScrollView>
+
+      {/* ─── Edit Account Modal ────────────────────────────────────── */}
+      <Modal
+        visible={editingAccount}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setEditingAccount(false)}
+      >
+        <SafeAreaView style={styles.modalSafe} edges={['top', 'bottom']}>
+          <View style={styles.modalHeader}>
+            <Pressable onPress={() => setEditingAccount(false)} hitSlop={10}>
+              <Ionicons name="close" size={24} color={colors.text} />
+            </Pressable>
+            <Text style={styles.modalTitle}>Edit Account</Text>
+            <View style={{ width: 24 }} />
+          </View>
+
+          <ScrollView contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
+            <View style={styles.avatarPickerContainer}>
+              <Avatar
+                uri={editAvatar ? editAvatar.uri : user?.avatar_url}
+                name={editName || '?'}
+                size={84}
+              />
+              <Pressable onPress={pickAvatar} style={styles.changeAvatarBtn}>
+                <Ionicons name="camera" size={16} color={colors.gold} />
+                <Text style={styles.changeAvatarText}>Change Photo</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.inputLabel}>Full Name</Text>
+              <TextInput
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Your full name"
+                placeholderTextColor={colors.dim}
+                style={styles.modalInput}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.inputLabel}>Phone Number</Text>
+              <TextInput
+                value={editPhone}
+                onChangeText={setEditPhone}
+                placeholder="+92 300 1234567"
+                placeholderTextColor={colors.dim}
+                keyboardType="phone-pad"
+                style={styles.modalInput}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.inputLabel}>City</Text>
+              <TextInput
+                value={editCity}
+                onChangeText={setEditCity}
+                placeholder="e.g. Lahore, Karachi, Islamabad"
+                placeholderTextColor={colors.dim}
+                style={styles.modalInput}
+              />
+            </View>
+
+            <View style={styles.modalActions}>
+              <Button
+                label={updateAccount.isPending ? 'Saving...' : 'Save Changes'}
+                onPress={handleSaveAccount}
+                disabled={updateAccount.isPending}
+                size="lg"
+              />
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -520,6 +688,56 @@ const styles = StyleSheet.create({
     backgroundColor: colors.redDim,
   },
   logoutText: { ...typography.bodyBold, color: colors.red },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+  },
+  deleteBtnText: { ...typography.caption, fontWeight: '700' as const, color: colors.red },
+  modalSafe: { flex: 1, backgroundColor: colors.bg },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalTitle: { ...typography.h3, color: colors.text },
+  modalContent: { padding: spacing.xl, gap: spacing.lg },
+  avatarPickerContainer: {
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  changeAvatarBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    backgroundColor: colors.goldDim,
+  },
+  changeAvatarText: { ...typography.caption, fontWeight: '700' as const, color: colors.gold },
+  formGroup: { gap: spacing.xs },
+  inputLabel: { ...typography.caption, fontWeight: '700' as const, color: colors.sub },
+  modalInput: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    color: colors.text,
+    ...typography.body,
+  },
+  modalActions: { marginTop: spacing.lg },
   version: {
     ...typography.tiny,
     color: colors.dim,

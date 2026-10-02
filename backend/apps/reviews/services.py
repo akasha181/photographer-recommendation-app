@@ -79,20 +79,25 @@ def create_review(
     title: str = "",
     comment: str = "",
     images: list | None = None,
+    photographer=None,
     **sub_ratings,
 ) -> Review:
     """
-    Write the one review this booking is entitled to.
-
-    `buyer` is passed explicitly rather than read off the booking: the caller
-    is asserting "this is who is acting", and comparing that against
-    `booking.buyer_id` is the ownership check. Reading it off the booking would
-    make the check tautological.
+    Write a review for a completed booking or directly for a photographer.
     """
-    _assert_eligible(booking, buyer)
+    if booking is not None:
+        _assert_eligible(booking, buyer)
+        review_photographer = booking.photographer
+    elif photographer is not None:
+        review_photographer = photographer
+    else:
+        raise BusinessRuleViolation("Booking or photographer must be specified.")
+
+    if review_photographer.user_id == buyer.id:
+        raise BusinessRuleViolation("You cannot review yourself.")
 
     review = _create_review_locked(
-        booking, buyer, rating=rating, title=title, comment=comment,
+        booking, buyer, photographer=review_photographer, rating=rating, title=title, comment=comment,
         images=images or [], sub_ratings=sub_ratings,
     )
 
@@ -101,21 +106,43 @@ def create_review(
 
 
 @transaction.atomic
-def _create_review_locked(booking, buyer, *, rating, title, comment, images, sub_ratings):
-    # Re-check under the lock. Two taps on Submit arrive as two requests; the
-    # serializer check passed in both, and this is where the loser stops.
-    locked = Review.all_objects.select_for_update().filter(booking=booking).first()
-    if locked is not None:
-        raise ConflictError("You have already reviewed this booking.")
-
+def _create_review_locked(booking, buyer, *, photographer, rating, title, comment, images, sub_ratings):
     from apps.core.sentiment import classify
 
     sentiment, score = classify(comment)
 
+    if booking is not None:
+        locked = Review.all_objects.select_for_update().filter(booking=booking).first()
+        if locked is not None:
+            raise ConflictError("You have already reviewed this booking.")
+        target_photographer = booking.photographer
+    else:
+        target_photographer = photographer
+        locked = Review.all_objects.select_for_update().filter(
+            booking__isnull=True, buyer=buyer, photographer=target_photographer
+        ).first()
+        if locked is not None:
+            locked.rating = rating
+            locked.title = title.strip()[:140]
+            locked.comment = comment.strip()
+            locked.sentiment = sentiment or ""
+            locked.sentiment_score = score
+            for f in SUB_RATING_FIELDS:
+                setattr(locked, f, sub_ratings.get(f))
+            locked.save()
+            for image in images[:MAX_IMAGES_PER_REVIEW]:
+                _attach_image(locked, image)
+            _refresh_ratings(target_photographer, buyer)
+            logger.info(
+                "Direct review updated",
+                extra={"review_id": locked.pk, "photographer_id": target_photographer.pk},
+            )
+            return locked
+
     review = Review.objects.create(
         booking=booking,
         buyer=buyer,
-        photographer=booking.photographer,
+        photographer=target_photographer,
         rating=rating,
         title=title.strip()[:140],
         comment=comment.strip(),
@@ -127,11 +154,9 @@ def _create_review_locked(booking, buyer, *, rating, title, comment, images, sub
     for image in images[:MAX_IMAGES_PER_REVIEW]:
         _attach_image(review, image)
 
-    # `.update()` rather than `booking.save()`: the booking was fetched for
-    # reading and may be stale in every other field. This writes exactly the
-    # flag that changed.
-    type(booking).objects.filter(pk=booking.pk).update(has_review=True)
-    booking.has_review = True
+    if booking is not None:
+        type(booking).objects.filter(pk=booking.pk).update(has_review=True)
+        booking.has_review = True
 
     _refresh_ratings(review.photographer, buyer)
 
@@ -139,7 +164,8 @@ def _create_review_locked(booking, buyer, *, rating, title, comment, images, sub
         "Review created",
         extra={
             "review_id": review.pk,
-            "booking_id": booking.pk,
+            "booking_id": booking.pk if booking else None,
+            "photographer_id": target_photographer.pk,
             "rating": rating,
             "sentiment": sentiment,
         },
@@ -480,6 +506,8 @@ def refresh_product_rating(product) -> None:
 # ═══════════════════════════════════════════════════════════════════════════
 def _refresh_ratings(photographer, buyer) -> None:
     """Photographer average + Bayesian score, and the buyer's own counter."""
+    from django.core.cache import cache
+
     from apps.profiles.models import BuyerProfile
     from apps.profiles.services import refresh_photographer_rating
 
@@ -487,6 +515,10 @@ def _refresh_ratings(photographer, buyer) -> None:
 
     written = Review.objects.visible().filter(buyer=buyer).count()
     BuyerProfile.objects.filter(user=buyer).update(reviews_written=written)
+    try:
+        cache.clear()
+    except Exception:
+        pass
 
 
 # ═══════════════════════════════════════════════════════════════════════════

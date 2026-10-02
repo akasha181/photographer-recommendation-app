@@ -190,6 +190,13 @@ export function useUploadImage() {
   );
 }
 
+export function useUpdatePortfolioImage() {
+  return usePortfolioMutation(
+    ({ id, payload }: { id: number; payload: { caption?: string; album?: number | null } }) =>
+      myPortfolioApi.update(id, payload),
+  );
+}
+
 export function useToggleFeature() {
   return usePortfolioMutation((id: number) => myPortfolioApi.toggleFeature(id));
 }

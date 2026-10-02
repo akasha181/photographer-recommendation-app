@@ -184,10 +184,7 @@ def searchable_contacts(user, term: str = ""):
         profile = getattr(user, "photographer_profile", None)
         if profile is None:
             return base.none()
-        buyer_ids = Booking.objects.filter(photographer=profile).values_list(
-            "buyer_id", flat=True
-        )
-        qs = base.filter(pk__in=buyer_ids)
+        qs = base.filter(role=UserRole.BUYER)
     else:
         return base.none()
 

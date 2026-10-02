@@ -32,7 +32,8 @@ export interface SubRatingInput {
 }
 
 export interface CreateReviewPayload extends SubRatingInput {
-  booking: number;
+  booking?: number;
+  photographer_id?: number;
   rating: number;
   title?: string;
   comment?: string;
@@ -49,7 +50,8 @@ export interface ReviewPage {
 
 function toFormData(payload: CreateReviewPayload): FormData {
   const form = new FormData();
-  form.append('booking', String(payload.booking));
+  if (payload.booking) form.append('booking', String(payload.booking));
+  if (payload.photographer_id) form.append('photographer_id', String(payload.photographer_id));
   form.append('rating', String(payload.rating));
   if (payload.title) form.append('title', payload.title);
   if (payload.comment) form.append('comment', payload.comment);

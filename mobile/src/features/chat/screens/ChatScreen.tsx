@@ -19,6 +19,7 @@ import { Avatar } from '../../../components/ui/Avatar';
 import { colors, radius, spacing, typography } from '../../../theme';
 import { formatDate, timeAgo } from '../../../utils/format';
 import type { Message } from '../../../types/models';
+import { useAuthStore } from '../../../store/authStore';
 import {
   useChatThread,
   useConversation,
@@ -208,26 +209,35 @@ function ChatThread({
     );
   }
 
+  const isOnline =
+    thread.isOtherOnline !== null && thread.isOtherOnline !== undefined
+      ? thread.isOtherOnline
+      : Boolean(other?.is_online);
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <Pressable onPress={onBack} hitSlop={12} accessibilityLabel="Go back">
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </Pressable>
-        <Avatar name={other?.full_name ?? heading} uri={other?.avatar_url} size={36} />
+        <View style={styles.avatarWrap}>
+          <Avatar name={other?.full_name ?? heading} uri={other?.avatar_url} size={38} />
+          <View style={[styles.avatarStatusDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
+        </View>
         <View style={styles.headerBody}>
           <Text style={styles.title} numberOfLines={1}>
             {heading}
           </Text>
-          <Text style={styles.presence} numberOfLines={1}>
-            {!thread.connected
-              ? 'Reconnecting…'
-              : other?.is_online
+          <View style={styles.presenceRow}>
+            <View style={[styles.presenceDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
+            <Text style={styles.presence} numberOfLines={1}>
+              {isOnline
                 ? 'Online'
                 : other?.last_seen_at
                   ? `Last seen ${timeAgo(other.last_seen_at)}`
-                  : ''}
-          </Text>
+                  : 'Offline'}
+            </Text>
+          </View>
         </View>
         <Pressable onPress={threadOptions} hitSlop={10} accessibilityLabel="Options">
           <Ionicons name="ellipsis-vertical" size={18} color={colors.sub} />
@@ -253,6 +263,14 @@ function ChatThread({
           ) : null}
         </Pressable>
       ) : null}
+
+      {/* ─── Security Notice: Explicit LTR ────────────────────────────── */}
+      <View style={styles.encryptionPill}>
+        <Ionicons name="lock-closed" size={11} color={colors.gold} />
+        <Text style={styles.encryptionText}>
+          End-to-End Encrypted
+        </Text>
+      </View>
 
       {conversation.data?.is_blocked ? (
         <View style={styles.blockedBar}>
@@ -323,7 +341,10 @@ function Bubble({
   message: Message;
   onLongPress: () => void;
 }) {
-  const mine = message.is_mine;
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const mine = Boolean(
+    message.is_mine || (currentUserId && message.sender === currentUserId),
+  );
 
   if (message.message_type === 'SYSTEM') {
     return <Text style={styles.system}>{message.body}</Text>;
@@ -390,7 +411,44 @@ const styles = StyleSheet.create({
   },
   headerBody: { flex: 1 },
   title: { ...typography.h3, color: colors.text },
+  presenceRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
+  presenceDot: { width: 6, height: 6, borderRadius: 3 },
   presence: { ...typography.tiny, color: colors.sub },
+  avatarWrap: { position: 'relative' },
+  avatarStatusDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: colors.bg,
+  },
+  dotOnline: { backgroundColor: colors.green },
+  dotOffline: { backgroundColor: colors.dim },
+  encryptionPill: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    marginVertical: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 6,
+  },
+  encryptionText: {
+    ...typography.tiny,
+    color: colors.gold,
+    fontSize: 11,
+    fontWeight: '600',
+    writingDirection: 'ltr',
+    textAlign: 'left',
+  },
   bookingBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -410,7 +468,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'flex-end',
   },
-  bubbleRow: { flexDirection: 'row', marginBottom: spacing.sm },
+  bubbleRow: { flexDirection: 'row', width: '100%', marginBottom: spacing.sm },
   bubbleRowMine: { justifyContent: 'flex-end' },
   bubbleRowTheirs: { justifyContent: 'flex-start' },
   bubble: {
@@ -445,7 +503,7 @@ const styles = StyleSheet.create({
   emptyThread: {
     alignItems: 'center',
     paddingVertical: spacing.huge,
-    transform: [{ scaleY: -1 }],
+    transform: Platform.OS === 'android' ? [{ scale: -1 }] : [{ scaleY: -1 }],
   },
   emptyTitle: { ...typography.h3, color: colors.text },
   emptyDetail: {

@@ -106,7 +106,7 @@ export function NewChatScreen({
               detail={
                 debounced
                   ? 'Try a different name.'
-                  : 'Photographers you can message appear here. Buyers can message any listed photographer; photographers can message buyers they have a booking with.'
+                  : 'Users you can message appear here. Search by name to start a conversation.'
               }
             />
           }

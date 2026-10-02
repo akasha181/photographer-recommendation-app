@@ -11,6 +11,7 @@ from django.contrib.auth import get_user_model
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -152,6 +153,7 @@ class LogoutView(GenericAPIView):
 class MeView(GenericAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request):
         return Response(
@@ -311,4 +313,7 @@ class DeleteAccountView(APIView):
 
     def delete(self, request):
         services.delete_account(request.user, reason=request.data.get("reason", ""))
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {"message": "Account successfully deleted", "data": {"deleted": True}},
+            status=status.HTTP_200_OK,
+        )

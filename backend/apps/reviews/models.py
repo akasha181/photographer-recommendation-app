@@ -41,8 +41,9 @@ class ReviewQuerySet(models.QuerySet):
 class Review(BaseModel):
     # ─── The proof of eligibility ────────────────────────────────────────────
     booking = models.OneToOneField(
-        "bookings.Booking", on_delete=models.PROTECT, related_name="review",
-        help_text="One review per completed booking. This IS the anti-fraud control.",
+        "bookings.Booking", on_delete=models.SET_NULL, related_name="review",
+        null=True, blank=True,
+        help_text="One review per completed booking, or null for direct reviews.",
     )
     buyer = models.ForeignKey(
         "accounts.User", on_delete=models.PROTECT, related_name="reviews_written"

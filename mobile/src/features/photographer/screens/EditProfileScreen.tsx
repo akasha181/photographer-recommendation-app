@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Keyboard, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ApiError } from '../../../api/client';
@@ -59,6 +59,7 @@ export function EditProfileScreen({ onBack }: { onBack: () => void }) {
   const set = (key: string, value: string) => setForm({ ...values, [key]: value });
 
   const save = () => {
+    Keyboard.dismiss();
     if (values.bio.trim() && values.bio.trim().length < 50) {
       Alert.alert(
         'Bio is too short',
@@ -82,7 +83,9 @@ export function EditProfileScreen({ onBack }: { onBack: () => void }) {
       {
         onSuccess: () => {
           setForm(null);
-          Alert.alert('Saved', 'Your profile is updated.');
+          Alert.alert('Saved', 'Your profile is updated.', [
+            { text: 'OK', onPress: onBack },
+          ]);
         },
         onError: (error) =>
           Alert.alert('Could not save', (error as ApiError).message),

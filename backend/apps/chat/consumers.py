@@ -42,11 +42,19 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
+        other_user_id = await self._get_other_user_id()
+        other_online = await self._check_is_online(other_user_id) if other_user_id else False
+
+        cache.set(f"presence:{self.user.id}", "1", 120)
+        await self._persist_user_online(True)
+
         await self.send_json(
             {
                 "type": "connected",
                 "conversation_id": self.conversation_id,
                 "unread_count": await self._unread_count(),
+                "other_user_id": other_user_id,
+                "other_online": other_online,
             }
         )
         await self._broadcast_presence(True)
@@ -54,13 +62,16 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def disconnect(self, code):
         if hasattr(self, "group_name"):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
-            await self._broadcast_presence(False)
 
     async def receive_json(self, content, **kwargs):
         action = content.get("type")
 
         if action == "message":
             await self._handle_message(content)
+        elif action == "heartbeat":
+            cache.set(f"presence:{self.user.id}", "1", 120)
+            await self._persist_user_online(True)
+            await self.send_json({"type": "heartbeat_ack"})
         elif action == "typing":
             await self.channel_layer.group_send(
                 self.group_name,
@@ -125,7 +136,11 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     # ─── Group event fan-out (names map to the "type" keys above) ────────────
     async def chat_message(self, event):
-        await self.send_json({"type": "message", **event["message"]})
+        msg = dict(event["message"])
+        msg["is_mine"] = bool(
+            self.user and self.user.is_authenticated and msg.get("sender_id") == self.user.id
+        )
+        await self.send_json({"type": "message", **msg})
 
     async def typing_event(self, event):
         if event["user_id"] != self.user.id:  # don't echo your own typing
@@ -139,6 +154,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self.send_json(
                 {"type": "read", "user_id": event["user_id"], "up_to": event["up_to"]}
             )
+
+    async def message_delete(self, event):
+        await self.send_json({"type": "delete", "id": event["message_id"]})
 
     async def presence_event(self, event):
         if event["user_id"] != self.user.id:
@@ -212,6 +230,36 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             conversation_id=self.conversation_id, user=self.user
         ).update(last_read_message_id=up_to, unread_count=0)
 
+    @database_sync_to_async
+    def _get_other_user_id(self) -> int | None:
+        from apps.chat.models import ConversationParticipant
+
+        link = (
+            ConversationParticipant.objects.filter(conversation_id=self.conversation_id)
+            .exclude(user=self.user)
+            .first()
+        )
+        return link.user_id if link else None
+
+    @database_sync_to_async
+    def _check_is_online(self, user_id: int | None) -> bool:
+        if not user_id:
+            return False
+        from django.core.cache import cache
+
+        return bool(cache.get(f"presence:{user_id}"))
+
+    @database_sync_to_async
+    def _persist_user_online(self, is_online: bool):
+        from apps.chat.models import Presence
+        from django.utils import timezone
+
+        presence, _ = Presence.objects.get_or_create(user=self.user)
+        Presence.objects.filter(pk=presence.pk).update(
+            is_online=is_online,
+            last_seen_at=timezone.now(),
+        )
+
 
 class PresenceConsumer(AsyncJsonWebsocketConsumer):
     """
@@ -222,7 +270,7 @@ class PresenceConsumer(AsyncJsonWebsocketConsumer):
     the user showing "online" forever. A TTL expires on its own.
     """
 
-    TTL_SECONDS = 60
+    TTL_SECONDS = 40
 
     async def connect(self):
         self.user = self.scope["user"]
@@ -240,9 +288,13 @@ class PresenceConsumer(AsyncJsonWebsocketConsumer):
             await self._set_online(False)
 
     async def receive_json(self, content, **kwargs):
-        if content.get("type") == "heartbeat":
+        action = content.get("type")
+        if action == "heartbeat":
             cache.set(f"presence:{self.user.id}", "1", self.TTL_SECONDS)
+            await self._persist_presence(True)
             await self.send_json({"type": "heartbeat_ack"})
+        elif action == "offline":
+            await self._set_online(False)
 
     async def presence_event(self, event):
         await self.send_json(
@@ -256,29 +308,37 @@ class PresenceConsumer(AsyncJsonWebsocketConsumer):
         else:
             cache.delete(f"presence:{self.user.id}")
         await self._persist_presence(is_online)
-        await self.channel_layer.group_send(
-            "presence",
-            {"type": "presence.event", "user_id": self.user.id, "is_online": is_online},
+
+        event = {
+            "type": "presence.event",
+            "user_id": self.user.id,
+            "is_online": is_online,
+        }
+        await self.channel_layer.group_send("presence", event)
+
+        # Broadcast to all active chat thread channels this user belongs to
+        # so any open chat screen instantly shows the updated status.
+        conversation_ids = await self._get_user_conversation_ids()
+        for cid in conversation_ids:
+            await self.channel_layer.group_send(f"chat_{cid}", event)
+
+    @database_sync_to_async
+    def _get_user_conversation_ids(self) -> list[int]:
+        from apps.chat.models import ConversationParticipant
+
+        return list(
+            ConversationParticipant.objects.filter(
+                user=self.user, left_at__isnull=True
+            ).values_list("conversation_id", flat=True)
         )
 
     @database_sync_to_async
     def _persist_presence(self, is_online: bool):
-        from django.db.models import F
-
         from apps.chat.models import Presence
+        from django.utils import timezone
 
         presence, _ = Presence.objects.get_or_create(user=self.user)
-        if is_online:
-            Presence.objects.filter(pk=presence.pk).update(
-                is_online=True,
-                last_seen_at=timezone.now(),
-                active_connections=F("active_connections") + 1,
-            )
-        else:
-            presence.refresh_from_db()
-            remaining = max(presence.active_connections - 1, 0)
-            Presence.objects.filter(pk=presence.pk).update(
-                is_online=remaining > 0,
-                active_connections=remaining,
-                last_seen_at=timezone.now(),
-            )
+        Presence.objects.filter(pk=presence.pk).update(
+            is_online=is_online,
+            last_seen_at=timezone.now(),
+        )

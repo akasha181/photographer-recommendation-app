@@ -7,13 +7,15 @@ import { DashboardScreen } from '../features/dashboard/screens/DashboardScreen';
 import { BookingDetailScreen } from '../features/bookings/screens/BookingDetailScreen';
 import { BookingsScreen } from '../features/bookings/screens/BookingsScreen';
 import { RequestsScreen } from '../features/bookings/screens/RequestsScreen';
-import { PortfolioScreen } from '../features/portfolio/screens/PortfolioScreen';
+import { MyPortfolioScreen } from '../features/photographer/screens/MyPortfolioScreen';
 import { ProfileScreen } from '../features/profile/screens/ProfileScreen';
 import { WalletScreen } from '../features/profile/screens/WalletScreen';
 import { WishlistScreen } from '../features/profile/screens/WishlistScreen';
+import { CartScreen } from '../features/shop/screens/CartScreen';
 import { ProductDetailScreen } from '../features/shop/screens/ProductDetailScreen';
 import { PurchasesScreen } from '../features/shop/screens/PurchasesScreen';
 import { SellerProductsScreen } from '../features/shop/screens/SellerProductsScreen';
+import { ShopScreen } from '../features/shop/screens/ShopScreen';
 import { EditProfileScreen } from '../features/photographer/screens/EditProfileScreen';
 import { MyCalendarScreen } from '../features/photographer/screens/MyCalendarScreen';
 import { MyServicesScreen } from '../features/photographer/screens/MyServicesScreen';
@@ -31,21 +33,16 @@ export type PhotographerTabParams = {
   Requests: undefined;
   Jobs: undefined;
   Portfolio: undefined;
+  Shop: undefined;
   Profile: undefined;
 };
 
-/**
- * Selling lives inside the Profile screen rather than in a sixth tab.
- *
- * Six bottom tabs is past the point where labels start truncating on a small
- * Android device, and a photographer opens their catalogue far less often
- * than they check requests. The route still exists in this stack, so it is
- * one tap from Profile and deep-linkable.
- */
 export type PhotographerStackParams = {
   Tabs: undefined;
   BookingDetail: { bookingId: number };
   SellerProducts: undefined;
+  Shop: undefined;
+  Cart: undefined;
   ProductDetail: { slug: string };
   Purchases: undefined;
   Wallet: undefined;
@@ -76,6 +73,7 @@ const ICONS: Record<keyof PhotographerTabParams, keyof typeof Ionicons.glyphMap>
   Requests: 'notifications',
   Jobs: 'calendar',
   Portfolio: 'images',
+  Shop: 'bag-handle',
   Profile: 'person',
 };
 
@@ -118,13 +116,22 @@ function PhotographerTabs({ navigation }: any) {
       </Tab.Screen>
 
       <Tab.Screen name="Portfolio">
-        {() => <PortfolioScreen />}
+        {() => <MyPortfolioScreen />}
+      </Tab.Screen>
+
+      <Tab.Screen name="Shop">
+        {() => (
+          <ShopScreen
+            onOpenProduct={(slug) => navigation.navigate('ProductDetail', { slug })}
+            onOpenCart={() => navigation.navigate('Cart')}
+          />
+        )}
       </Tab.Screen>
 
       <Tab.Screen name="Profile">
         {({ navigation: tabNav }) => (
           <ProfileScreen
-            onOpenWallet={() => navigation.navigate('Wallet')}
+            onOpenShop={() => navigation.navigate('Shop')}
             onOpenWishlist={() => navigation.navigate('Wishlist')}
             onOpenPurchases={() => navigation.navigate('Purchases')}
             onOpenBookings={() => tabNav.navigate('Jobs')}
@@ -193,11 +200,19 @@ export function PhotographerNavigator() {
           <ProductDetailScreen
             slug={route.params.slug}
             onBack={() => navigation.goBack()}
-            // A photographer browsing the shop is a buyer like any other, but
-            // there is no Cart tab on this side — send them to the wallet,
-            // which is where the balance they would spend actually lives.
-            onOpenCart={() => navigation.navigate('Wallet')}
+            onOpenCart={() => navigation.navigate('Cart')}
             onTopUp={() => navigation.navigate('Wallet')}
+          />
+        )}
+      </Stack.Screen>
+
+      <Stack.Screen name="Cart">
+        {({ navigation }) => (
+          <CartScreen
+            onBack={() => navigation.goBack()}
+            onOpenProduct={(slug) => navigation.navigate('ProductDetail', { slug })}
+            onTopUp={() => navigation.navigate('Wallet')}
+            onPurchased={() => navigation.replace('Purchases')}
           />
         )}
       </Stack.Screen>

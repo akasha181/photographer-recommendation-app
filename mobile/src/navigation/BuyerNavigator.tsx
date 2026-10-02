@@ -176,7 +176,7 @@ function BuyerTabs({ navigation }: any) {
       <Tab.Screen name="Profile">
         {({ navigation: tabNav }) => (
           <ProfileScreen
-            onOpenWallet={() => navigation.navigate('Wallet')}
+            onOpenShop={() => tabNav.navigate('Shop')}
             onOpenWishlist={() => navigation.navigate('Wishlist')}
             onOpenPurchases={() => navigation.navigate('Purchases')}
             onOpenBookings={() => tabNav.navigate('Bookings')}

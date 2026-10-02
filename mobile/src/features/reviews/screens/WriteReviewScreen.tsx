@@ -28,12 +28,13 @@ const SUB_RATINGS = [
   { key: 'rating_punctuality', label: 'Punctuality' },
 ] as const;
 
-type Target =
+export type ReviewTarget =
   | { kind: 'booking'; bookingId: number; subject: string; detail?: string }
-  | { kind: 'product'; orderItemId: number; subject: string; detail?: string };
+  | { kind: 'product'; orderItemId: number; subject: string; detail?: string }
+  | { kind: 'photographer'; photographerId: number; subject: string; detail?: string };
 
 /**
- * The review form — one screen for both a shoot and a purchased product.
+ * The review form — one screen for a shoot, a photographer, or a purchased product.
  *
  * WHY A LOW RATING ASKS FOR WORDS BEFORE IT WILL SUBMIT
  * ---------------------------------------------------
@@ -54,7 +55,7 @@ export function WriteReviewScreen({
   onBack,
   onDone,
 }: {
-  target: Target;
+  target: ReviewTarget;
   onBack: () => void;
   onDone: () => void;
 }) {
@@ -114,7 +115,8 @@ export function WriteReviewScreen({
 
     createReview.mutate(
       {
-        booking: target.bookingId,
+        booking: target.kind === 'booking' ? target.bookingId : undefined,
+        photographer_id: target.kind === 'photographer' ? target.photographerId : undefined,
         rating,
         title: title.trim(),
         comment: comment.trim(),

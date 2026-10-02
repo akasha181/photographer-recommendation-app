@@ -1,0 +1,10 @@
+{
+  "name": "photographer-booking-app-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npm --prefix mobile start",
+    "mobile": "npm --prefix mobile start",
+    "backend": "python backend/manage.py runserver 0.0.0.0:8000"
+  }
+}

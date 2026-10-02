@@ -26,11 +26,19 @@ import type {
   SellerSummary,
   ShopFilterOptions,
   TopUpRequest,
+  User,
   Wallet,
   WalletTransaction,
   Wishlist,
   WishlistCounts,
 } from '../../types/models';
+
+export interface UpdateAccountPayload {
+  full_name?: string;
+  phone?: string;
+  city?: string;
+  avatar?: { uri: string; name?: string; type?: string } | null;
+}
 
 export interface ShopFilters {
   q?: string;
@@ -150,10 +158,35 @@ export const shopApi = {
     );
   },
 
-  // ─── Seller (read-only) ──────────────────────────────────────────────────
+  // ─── Seller (products & sales) ──────────────────────────────────────────
   /** Includes unpublished drafts, so the payload carries the moderation flags. */
   sellerProducts() {
     return unwrap<SellerProduct[]>(api.get(ENDPOINTS.marketplace.sellerProducts));
+  },
+
+  createSellerProduct(payload: {
+    title: string;
+    description?: string;
+    price: string | number;
+    compare_at_price?: string | number;
+    product_type?: string;
+    thumbnail?: { uri: string; name: string; type: string };
+  }) {
+    const form = new FormData();
+    form.append('title', payload.title);
+    form.append('price', String(payload.price));
+    if (payload.description) form.append('description', payload.description);
+    if (payload.product_type) form.append('product_type', payload.product_type);
+    if (payload.compare_at_price) form.append('compare_at_price', String(payload.compare_at_price));
+    if (payload.thumbnail) {
+      form.append('thumbnail', payload.thumbnail as unknown as Blob);
+    }
+    return unwrap<SellerProduct>(
+      api.post(ENDPOINTS.marketplace.sellerProducts, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        transformRequest: (data) => data,
+      }),
+    );
   },
 
   sellerSummary() {
@@ -179,6 +212,31 @@ export const profileApi = {
     return unwrap<BuyerProfile | PhotographerSelfProfile>(
       api.patch(ENDPOINTS.profiles.update, payload),
     );
+  },
+
+  updateAccount(payload: UpdateAccountPayload) {
+    if (payload.avatar) {
+      const form = new FormData();
+      if (payload.full_name) form.append('full_name', payload.full_name);
+      if (payload.phone !== undefined) form.append('phone', payload.phone);
+      if (payload.city !== undefined) form.append('city', payload.city);
+      form.append('avatar', {
+        uri: payload.avatar.uri,
+        name: payload.avatar.name ?? 'avatar.jpg',
+        type: payload.avatar.type ?? 'image/jpeg',
+      } as unknown as Blob);
+      return unwrap<User>(
+        api.patch(ENDPOINTS.auth.me, form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        }),
+      );
+    }
+    const { avatar, ...json } = payload;
+    return unwrap<User>(api.patch(ENDPOINTS.auth.me, json));
+  },
+
+  deleteAccount(reason = '') {
+    return api.delete(ENDPOINTS.auth.deleteAccount, { data: { reason } });
   },
 
   wallet() {
